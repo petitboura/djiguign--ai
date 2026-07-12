@@ -56,6 +56,8 @@ export default function PageModifierAgent() {
   const [systemPrompt, setSystemPrompt] = useState("");
   const [lienNotion, setLienNotion] = useState("");
   const [texteLibre, setTexteLibre] = useState("");
+  // Même correctif que la page de création (2026-07-12, Bourama).
+  const [pleinEcranTexteLibre, setPleinEcranTexteLibre] = useState(false);
   const [actif, setActif] = useState(true);
 
   const [documents, setDocuments] = useState<DocumentIndexe[] | null>(null);
@@ -284,14 +286,57 @@ export default function PageModifierAgent() {
             </div>
 
             <div>
-              <label className={labelClasse}>Texte de connaissance libre</label>
+              <div className="flex items-center justify-between">
+                <label className={labelClasse}>Connaissance libre</label>
+                <button
+                  type="button"
+                  onClick={() => setPleinEcranTexteLibre(true)}
+                  className="text-xs text-dj-accent-1 transition-colors hover:text-dj-accent-2"
+                >
+                  Plein écran ⤢
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-dj-texte-muet">
+                Pour une connaissance étendue que l&apos;agent doit avoir, mais qui
+                n&apos;existe pas en PDF ou qui change souvent. Aucune limite de
+                taille.
+              </p>
               <textarea
                 value={texteLibre}
                 onChange={(e) => setTexteLibre(e.target.value)}
-                rows={4}
-                className={champClasse}
+                rows={8}
+                className={`${champClasse} resize-y`}
               />
             </div>
+
+            {pleinEcranTexteLibre && (
+              <div className="fixed inset-0 z-50 flex flex-col bg-dj-fond p-5">
+                <div className="flex items-center justify-between pb-3">
+                  <div>
+                    <h2 className="font-display text-lg font-bold text-dj-texte">
+                      Connaissance libre
+                    </h2>
+                    <p className="text-xs text-dj-texte-muet">
+                      Pour une connaissance étendue, pas en PDF, ou qui change
+                      souvent. Aucune limite de taille.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPleinEcranTexteLibre(false)}
+                    className="rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
+                  >
+                    Fermer
+                  </button>
+                </div>
+                <textarea
+                  value={texteLibre}
+                  onChange={(e) => setTexteLibre(e.target.value)}
+                  autoFocus
+                  className={`${champClasse} flex-1 resize-none font-mono text-sm`}
+                />
+              </div>
+            )}
           </section>
 
           {erreur && <p className="text-sm text-[#F87171]">{erreur}</p>}
