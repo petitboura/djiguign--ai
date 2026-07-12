@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { appelerApi } from "@/lib/api";
+import { revaliderPortfolioPublic } from "@/app/actions";
 import { AgentCard, type AgentResume } from "@/components/AgentCard";
 import { TopBar } from "@/components/TopBar";
 import { ChampImage } from "@/components/ChampImage";
@@ -95,6 +96,18 @@ export default function PageDashboard() {
           avatar_url: avatarUrl || null,
         }),
       });
+      // Sans ça, /u/[id] pouvait montrer l'ancienne version jusqu'à 30s
+      // après la sauvegarde (cache de lib/api-serveur.ts) -- voir
+      // app/actions.ts pour le détail. `session` est garanti non-null ici
+      // (le formulaire n'est rendu qu'après vérification de la session).
+      // Try séparé : la sauvegarde elle-même a déjà réussi juste au-dessus,
+      // un souci sur la seule revalidation ne doit pas faire croire à un
+      // échec de sauvegarde.
+      try {
+        await revaliderPortfolioPublic(session!.user.id);
+      } catch (erreurRevalidation) {
+        console.error("Revalidation du portfolio public échouée :", erreurRevalidation);
+      }
       setMessageProfil("Profil enregistré.");
     } catch (e) {
       setMessageProfil(e instanceof Error ? e.message : "Erreur inconnue.");
