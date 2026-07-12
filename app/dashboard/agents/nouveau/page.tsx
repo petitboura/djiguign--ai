@@ -68,6 +68,9 @@ export default function PageCreerAgent() {
   const [fichierPdf, setFichierPdf] = useState<File | null>(null);
 
   const [envoi, setEnvoi] = useState(false);
+  const [agentCree, setAgentCree] = useState<{ id: string; nom: string; icone: string } | null>(
+    null
+  );
   const [erreur, setErreur] = useState<string | null>(null);
 
   useEffect(() => {
@@ -146,7 +149,14 @@ export default function PageCreerAgent() {
       }
     }
 
-    router.push(`/agent/${idAgentCree}`);
+    // Fix du 2026-07-12 (Bourama : le bouton "Voir mon agent" doit être
+    // visible juste après la création) : on ne redirige plus en
+    // silence vers la page publique de l'agent — on affiche un écran de
+    // confirmation avec le lien à partager et un bouton explicite, pour
+    // que la création se sente confirmée plutôt que de disparaître d'un
+    // coup vers une autre page.
+    setEnvoi(false);
+    setAgentCree({ id: idAgentCree!, nom, icone: iconePage || "🤖" });
   }
 
   if (session === undefined || session === null) return null;
@@ -154,6 +164,61 @@ export default function PageCreerAgent() {
   const champClasse =
     "mt-1 w-full rounded-lg border border-dj-bordure bg-dj-surface-haute px-3 py-2 text-dj-texte outline-none focus:border-dj-accent-1";
   const labelClasse = "block text-sm font-medium text-dj-texte-muet";
+
+  if (agentCree) {
+    const lienPublic =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/agent/${agentCree.id}`
+        : `/agent/${agentCree.id}`;
+
+    return (
+      <div className="min-h-screen">
+        <TopBar />
+        <main className="mx-auto max-w-lg px-5 py-10 text-center">
+          <p className="text-5xl">{agentCree.icone}</p>
+          <h1 className="mt-3 font-display text-2xl font-bold text-dj-texte">
+            {agentCree.nom} est en ligne !
+          </h1>
+          <p className="mt-2 text-sm text-dj-texte-muet">
+            Ton agent est créé et prêt à discuter. Partage son lien ou va directement le voir.
+          </p>
+
+          <div className="mt-6 flex items-center gap-2 rounded-full border border-dj-bordure bg-dj-surface-haute px-4 py-2">
+            <input
+              readOnly
+              value={lienPublic}
+              className="flex-1 truncate bg-transparent text-sm text-dj-texte outline-none"
+              onFocus={(e) => e.target.select()}
+            />
+            <button
+              type="button"
+              onClick={() => navigator.clipboard.writeText(lienPublic)}
+              className="shrink-0 rounded-full border border-dj-bordure px-3 py-1 text-xs text-dj-texte-muet transition-colors hover:border-dj-bordure-forte"
+            >
+              Copier
+            </button>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <button
+              type="button"
+              onClick={() => router.push(`/agent/${agentCree.id}`)}
+              className="rounded-full bg-dj-gradient px-6 py-3 text-sm font-bold text-[#1A0D02] transition-transform hover:-translate-y-0.5"
+            >
+              Voir mon agent
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/dashboard")}
+              className="rounded-full border border-dj-bordure px-6 py-3 text-sm text-dj-texte-muet transition-colors hover:border-dj-bordure-forte"
+            >
+              Retour au dashboard
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
