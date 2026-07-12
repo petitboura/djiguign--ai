@@ -9,6 +9,7 @@ import { revaliderPortfolioPublic } from "@/app/actions";
 import { AgentCard, type AgentResume } from "@/components/AgentCard";
 import { TopBar } from "@/components/TopBar";
 import { ChampImage } from "@/components/ChampImage";
+import { BoutonPartager } from "@/components/BoutonPartager";
 
 // Étape D.5 (pivot social). Dashboard PRIVÉ, existe pour tout compte
 // connecté dès l'inscription (voir PIVOT_SOCIAL.md, section "Compte
@@ -53,7 +54,6 @@ export default function PageDashboard() {
   // (2026-07-12, remonté par Bourama, même bug que sur la page de
   // création : aucun retour visuel après le clic). Un seul id à la fois
   // suffit, il n'y a pas de copie simultanée possible.
-  const [lienCopieId, setLienCopieId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -174,12 +174,18 @@ export default function PageDashboard() {
           </form>
 
           {profil && (
-            <Link
-              href={`/u/${profil.user_id}`}
-              className="self-start text-sm text-dj-accent-1 transition-colors hover:text-dj-accent-2"
-            >
-              Voir mon portfolio public →
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                href={`/u/${profil.user_id}`}
+                className="text-sm text-dj-accent-1 transition-colors hover:text-dj-accent-2"
+              >
+                Voir mon portfolio public →
+              </Link>
+              <BoutonPartager
+                chemin={`/u/${profil.user_id}`}
+                titre={nomAffiche || "Mon portfolio"}
+              />
+            </div>
           )}
         </section>
 
@@ -210,17 +216,11 @@ export default function PageDashboard() {
                     >
                       Modifier →
                     </Link>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(`${window.location.origin}/agent/${agent.id}`);
-                        setLienCopieId(agent.id);
-                        setTimeout(() => setLienCopieId(null), 2000);
-                      }}
-                      className="self-start text-xs text-dj-texte-muet transition-colors hover:text-dj-texte"
-                    >
-                      {lienCopieId === agent.id ? "Copié !" : "Copier le lien"}
-                    </button>
+                    <BoutonPartager
+                      chemin={`/agent/${agent.id}`}
+                      titre={agent.nom}
+                      libelle="Partager"
+                    />
                   </div>
                 </div>
               ))}
