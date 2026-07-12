@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { appelerApi } from "@/lib/api";
 import { AgentCard, type AgentResume } from "@/components/AgentCard";
 import { TopBar } from "@/components/TopBar";
+import { ChampImage } from "@/components/ChampImage";
 
 // Étape D.5 (pivot social). Dashboard PRIVÉ, existe pour tout compte
 // connecté dès l'inscription (voir PIVOT_SOCIAL.md, section "Compte
@@ -138,17 +139,7 @@ export default function PageDashboard() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-dj-texte-muet">
-                URL avatar
-              </label>
-              <input
-                value={avatarUrl}
-                onChange={(e) => setAvatarUrl(e.target.value)}
-                placeholder="https://..."
-                className="mt-1 w-full rounded-lg border border-dj-bordure bg-dj-surface-haute px-3 py-2 text-dj-texte outline-none focus:border-dj-accent-1"
-              />
-            </div>
+            <ChampImage label="Avatar" valeur={avatarUrl} onChange={setAvatarUrl} rond />
 
             <div className="flex items-center gap-3">
               <button
