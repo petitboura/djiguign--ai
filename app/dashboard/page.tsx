@@ -49,6 +49,11 @@ export default function PageDashboard() {
   const [messageProfil, setMessageProfil] = useState<string | null>(null);
 
   const [agents, setAgents] = useState<AgentResume[] | null>(null);
+  // Confirmation visuelle du bouton "Copier le lien" par carte agent
+  // (2026-07-12, remonté par Bourama, même bug que sur la page de
+  // création : aucun retour visuel après le clic). Un seul id à la fois
+  // suffit, il n'y a pas de copie simultanée possible.
+  const [lienCopieId, setLienCopieId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -207,12 +212,14 @@ export default function PageDashboard() {
                     </Link>
                     <button
                       type="button"
-                      onClick={() =>
-                        navigator.clipboard.writeText(`${window.location.origin}/agent/${agent.id}`)
-                      }
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/agent/${agent.id}`);
+                        setLienCopieId(agent.id);
+                        setTimeout(() => setLienCopieId(null), 2000);
+                      }}
                       className="self-start text-xs text-dj-texte-muet transition-colors hover:text-dj-texte"
                     >
-                      Copier le lien
+                      {lienCopieId === agent.id ? "Copié !" : "Copier le lien"}
                     </button>
                   </div>
                 </div>

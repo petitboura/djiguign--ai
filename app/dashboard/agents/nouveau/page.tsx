@@ -31,11 +31,6 @@ import { ChampImage } from "@/components/ChampImage";
 
 const TON_OPTIONS = ["Tutoiement (tu)", "Vouvoiement (vous)"];
 
-const TYPE_CONNAISSANCE_OPTIONS = [
-  "Factuelle et stable (ex: grille tarifaire, procédures — la fraîcheur et l'exactitude priment)",
-  "Méthodologique et pédagogique (ex: façon d'expliquer, exemples — sert de méthode plutôt que de faits figés)",
-];
-
 const NB_LIGNES_COMPORTEMENT = 4;
 
 type LigneComportement = { type_requete: string; comportement: string };
@@ -61,10 +56,20 @@ export default function PageCreerAgent() {
     }))
   );
 
-  const [typeConnaissance, setTypeConnaissance] = useState(TYPE_CONNAISSANCE_OPTIONS[0]);
+  // Champ "Nature de la connaissance" retiré du formulaire (2026-07-12,
+  // remonté par Bourama : redondant/pas clair pour les créateurs).
+  // type_connaissance est maintenant optionnel côté API
+  // (composer_system_prompt, core/creation_agent.py) -- on ne l'envoie
+  // simplement plus.
   const [descriptionConnaissance, setDescriptionConnaissance] = useState("");
   const [lienNotion, setLienNotion] = useState("");
   const [texteLibre, setTexteLibre] = useState("");
+  // Vue plein écran du champ "texte de connaissance libre" (2026-07-12,
+  // remonté par Bourama : ce champ sert à une CONNAISSANCE ÉTENDUE que
+  // l'agent doit avoir -- pas un PDF, et pas figée (elle change souvent)
+  // -- donc potentiellement longue, illisible dans une textarea de 4
+  // lignes. Aucune limite de taille côté API (voir api/agents.py).
+  const [pleinEcranTexteLibre, setPleinEcranTexteLibre] = useState(false);
   const [fichierPdf, setFichierPdf] = useState<File | null>(null);
 
   const [envoi, setEnvoi] = useState(false);
@@ -72,6 +77,10 @@ export default function PageCreerAgent() {
     null
   );
   const [erreur, setErreur] = useState<string | null>(null);
+  // Confirmation visuelle du bouton "Copier" (2026-07-12, remonté par
+  // Bourama : "tu copie et tu reste la sans rien savoir" -- aucun retour
+  // visuel après le clic, impossible de savoir si le clipboard a marché).
+  const [lienCopie, setLienCopie] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -116,7 +125,6 @@ export default function PageCreerAgent() {
             (l) => l.type_requete.trim() || l.comportement.trim()
           ),
           outils_choisis: [],
-          type_connaissance: typeConnaissance,
           description_connaissance: descriptionConnaissance,
           lien_notion: lienNotion || null,
           texte_libre: texteLibre,
@@ -192,10 +200,14 @@ export default function PageCreerAgent() {
             />
             <button
               type="button"
-              onClick={() => navigator.clipboard.writeText(lienPublic)}
+              onClick={() => {
+                navigator.clipboard.writeText(lienPublic);
+                setLienCopie(true);
+                setTimeout(() => setLienCopie(false), 2000);
+              }}
               className="shrink-0 rounded-full border border-dj-bordure px-3 py-1 text-xs text-dj-texte-muet transition-colors hover:border-dj-bordure-forte"
             >
-              Copier
+              {lienCopie ? "Copié !" : "Copier"}
             </button>
           </div>
 
@@ -343,24 +355,6 @@ export default function PageCreerAgent() {
             </h2>
 
             <div>
-              <label className={labelClasse}>Nature de la connaissance</label>
-              <div className="mt-2 flex flex-col gap-2">
-                {TYPE_CONNAISSANCE_OPTIONS.map((o) => (
-                  <label key={o} className="flex items-start gap-2 text-sm text-dj-texte">
-                    <input
-                      type="radio"
-                      name="type_connaissance"
-                      checked={typeConnaissance === o}
-                      onChange={() => setTypeConnaissance(o)}
-                      className="mt-1"
-                    />
-                    {o}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div>
               <label className={labelClasse}>
                 En une phrase, quel type d&apos;information l&apos;agent doit-il connaître ?
               </label>
@@ -383,14 +377,58 @@ export default function PageCreerAgent() {
             </div>
 
             <div>
-              <label className={labelClasse}>Texte de connaissance libre (optionnel)</label>
+              <div className="flex items-center justify-between">
+                <label className={labelClasse}>Connaissance libre (optionnel)</label>
+                <button
+                  type="button"
+                  onClick={() => setPleinEcranTexteLibre(true)}
+                  className="text-xs text-dj-accent-1 transition-colors hover:text-dj-accent-2"
+                >
+                  Plein écran ⤢
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-dj-texte-muet">
+                Pour une connaissance étendue que l&apos;agent doit avoir, mais qui
+                n&apos;existe pas en PDF ou qui change souvent (contrairement à un
+                document, ce texte se modifie en quelques secondes). Aucune
+                limite de taille : colle tout ce dont l&apos;agent a besoin.
+              </p>
               <textarea
                 value={texteLibre}
                 onChange={(e) => setTexteLibre(e.target.value)}
-                rows={4}
-                className={champClasse}
+                rows={8}
+                className={`${champClasse} resize-y`}
               />
             </div>
+
+            {pleinEcranTexteLibre && (
+              <div className="fixed inset-0 z-50 flex flex-col bg-dj-fond p-5">
+                <div className="flex items-center justify-between pb-3">
+                  <div>
+                    <h2 className="font-display text-lg font-bold text-dj-texte">
+                      Connaissance libre
+                    </h2>
+                    <p className="text-xs text-dj-texte-muet">
+                      Pour une connaissance étendue, pas en PDF, ou qui change
+                      souvent. Aucune limite de taille.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPleinEcranTexteLibre(false)}
+                    className="rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
+                  >
+                    Fermer
+                  </button>
+                </div>
+                <textarea
+                  value={texteLibre}
+                  onChange={(e) => setTexteLibre(e.target.value)}
+                  autoFocus
+                  className={`${champClasse} flex-1 resize-none font-mono text-sm`}
+                />
+              </div>
+            )}
 
             <div>
               <label className={labelClasse}>Document PDF (optionnel)</label>
