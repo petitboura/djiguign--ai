@@ -8,6 +8,7 @@ import { BoutonRetour } from "@/components/BoutonRetour";
 import { BoutonUtiliser } from "@/components/BoutonUtiliser";
 import { NoteAgent } from "@/components/NoteAgent";
 import { CommentairesAgent } from "@/components/CommentairesAgent";
+import { BoutonPartager } from "@/components/BoutonPartager";
 
 // Étape D.3 (pivot social) : page agent publique (voir tableau des pages
 // dans PIVOT_SOCIAL.md — /agent/[id], "id" sert de slug, voir
@@ -84,8 +85,9 @@ export default async function PageAgent({ params }: { params: { id: string } }) 
               <p className="text-dj-texte-muet">{agent.description}</p>
             )}
 
-            <div>
+            <div className="flex items-center gap-3">
               <BoutonUtiliser agentId={agent.id} />
+              <BoutonPartager chemin={`/agent/${agent.id}`} titre={agent.nom} />
             </div>
 
             <NoteAgent agentId={agent.id} />
