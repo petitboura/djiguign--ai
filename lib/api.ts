@@ -38,3 +38,36 @@ export async function appelerApi(chemin: string, options: RequestInit = {}) {
 
   return reponse.json();
 }
+
+/**
+ * Variante de appelerApi pour l'upload de fichiers (multipart/form-data).
+ * Ajoutée pour le fix du 2026-07-12 (champs URL image remplacés par un
+ * vrai upload, voir components/ChampImage.tsx). Pas de
+ * Content-Type manuel : le navigateur doit le fixer lui-même avec le
+ * boundary du FormData, le mettre à la main casse l'upload.
+ */
+export async function appelerApiFichier(chemin: string, fichier: File) {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error("Connecte-toi pour envoyer une image.");
+  }
+
+  const corps = new FormData();
+  corps.append("fichier", fichier);
+
+  const reponse = await fetch(`${API_URL}${chemin}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${session.access_token}` },
+    body: corps,
+  });
+
+  if (!reponse.ok) {
+    const detail = await reponse.text().catch(() => "");
+    throw new Error(`Erreur API ${reponse.status} sur ${chemin} : ${detail}`);
+  }
+
+  return reponse.json();
+}
