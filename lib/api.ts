@@ -36,6 +36,15 @@ export async function appelerApi(chemin: string, options: RequestInit = {}) {
     throw new Error(`Erreur API ${reponse.status} sur ${chemin} : ${detail}`);
   }
 
+  // Certaines routes (ex: POST .../rating) renvoient 204 No Content —
+  // aucun corps à parser. Sans ce garde-fou, response.json() plante avec
+  // "Unexpected end of JSON input" (bug remonté par Bourama, 2026-07-12,
+  // sur le clic étoile de la note). content-length à "0" couvre aussi le
+  // cas d'un corps vide envoyé avec un autre code que 204.
+  if (reponse.status === 204 || reponse.headers.get("content-length") === "0") {
+    return null;
+  }
+
   return reponse.json();
 }
 
