@@ -50,6 +50,21 @@ body {
   border-radius: 4px;
 }
 
+/* Corrige le cadre double repéré en conditions réelles (2026-07-12,
+   Bourama) : les champs de saisie (input/textarea/select) ont déjà leur
+   propre bordure orange au focus (classe Tailwind focus:border-dj-accent-1,
+   collée au champ). La règle :focus-visible ci-dessus s'appliquait EN PLUS
+   sur ces mêmes champs -- un second contour, plus large et décalé de 3px
+   vers l'extérieur, superposé au premier. Désactivé ici uniquement pour
+   les champs de formulaire, qui n'en ont pas besoin (leur bordure suffit
+   déjà comme indicateur de focus) ; conservé sur les boutons/liens, qui
+   eux n'ont pas d'indicateur de focus propre. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
