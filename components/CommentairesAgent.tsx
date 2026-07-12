@@ -7,16 +7,17 @@ import { appelerApi } from "@/lib/api";
 // Étape D.3 (pivot social). Contrat backend (api/agents.py) :
 // GET .../comments est public et renvoie une liste brute (pas d'enveloppe
 // de pagination, contrairement à /api/feed) ; POST exige un token.
-// user_id est renvoyé par commentaire mais le backend ne résout pas encore
-// le nom affiché (pas de jointure vers profiles ici, voir la note sur
-// obtenir_agent_public dans api/agents.py qui applique le même principe) —
-// donc on affiche l'id tronqué en attendant que /api/profiles existe côté
-// UI (Étape D.4). Pas idéal, mais pas de fausse donnée inventée.
+// Le backend résout désormais nom_affiche par jointure vers profiles
+// (corrigé le 2026-07-12, maintenant que /api/profiles existe côté UI) :
+// on l'affiche si présent, sinon repli sur l'id tronqué plutôt que
+// d'inventer une fausse donnée (un compte n'ayant jamais renseigné son
+// profil n'a pas encore de nom_affiche).
 
 type Commentaire = {
   id: string;
   agent_id: string;
   user_id: string;
+  nom_affiche: string | null;
   contenu: string;
   created_at?: string | null;
 };
@@ -104,7 +105,9 @@ export function CommentairesAgent({ agentId }: { agentId: string }) {
             key={c.id}
             className="rounded-xl border border-dj-bordure bg-dj-surface px-4 py-3"
           >
-            <p className="text-xs text-dj-texte-muet">{c.user_id.slice(0, 8)}</p>
+            <p className="text-xs text-dj-texte-muet">
+              {c.nom_affiche || `Utilisateur ${c.user_id.slice(0, 8)}`}
+            </p>
             <p className="mt-1 text-sm text-dj-texte">{c.contenu}</p>
           </div>
         ))}
