@@ -27,6 +27,7 @@ type AgentEditable = {
   texte_libre: string;
   image_vitrine_url: string | null;
   description: string;
+  sous_titre: string;
   actif: boolean;
 };
 
@@ -48,6 +49,10 @@ export default function PageModifierAgent() {
   const [iconePage, setIconePage] = useState("🤖");
   const [imageVitrineUrl, setImageVitrineUrl] = useState("");
   const [description, setDescription] = useState("");
+  // Ajouté le 2026-07-12 (Bourama : "le dashboard de modification aussi
+  // changer") -- même correctif que le formulaire de création, distinct
+  // de `description` (taille libre).
+  const [sousTitre, setSousTitre] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [lienNotion, setLienNotion] = useState("");
   const [texteLibre, setTexteLibre] = useState("");
@@ -80,6 +85,7 @@ export default function PageModifierAgent() {
         setIconePage(r.icone_page || "🤖");
         setImageVitrineUrl(r.image_vitrine_url || "");
         setDescription(r.description || "");
+        setSousTitre(r.sous_titre || "");
         setSystemPrompt(r.system_prompt || "");
         setLienNotion(r.notion_page_id || "");
         setTexteLibre(r.texte_libre || "");
@@ -114,6 +120,7 @@ export default function PageModifierAgent() {
           texte_libre: texteLibre,
           image_vitrine_url: imageVitrineUrl || null,
           description,
+          sous_titre: sousTitre,
           actif,
         }),
       });
@@ -207,10 +214,29 @@ export default function PageModifierAgent() {
 
             <div>
               <label className={labelClasse}>Description publique</label>
+              <p className="mt-1 text-xs text-dj-texte-muet">
+                Le texte de présentation de l&apos;agent (fiche, recherche) — aucune
+                limite de taille.
+              </p>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
+                className={champClasse}
+              />
+            </div>
+
+            <div>
+              <label className={labelClasse}>Phrase d&apos;accueil</label>
+              <p className="mt-1 text-xs text-dj-texte-muet">
+                Une phrase courte, affichée sous le titre au tout premier écran du
+                chat, avant le premier message — distincte de la description
+                publique ci-dessus.
+              </p>
+              <input
+                value={sousTitre}
+                onChange={(e) => setSousTitre(e.target.value)}
+                placeholder="Ex : Je t'aide à structurer ton entraînement de la semaine."
                 className={champClasse}
               />
             </div>
