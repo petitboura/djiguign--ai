@@ -185,12 +185,23 @@ export default function PageDashboard() {
               {agents.map((agent) => (
                 <div key={agent.id} className="flex flex-col gap-2">
                   <AgentCard agent={agent} />
-                  <Link
-                    href={`/dashboard/agents/${agent.id}/modifier`}
-                    className="self-start text-xs text-dj-accent-1 transition-colors hover:text-dj-accent-2"
-                  >
-                    Modifier →
-                  </Link>
+                  <div className="flex items-center gap-3">
+                    <Link
+                      href={`/dashboard/agents/${agent.id}/modifier`}
+                      className="self-start text-xs text-dj-accent-1 transition-colors hover:text-dj-accent-2"
+                    >
+                      Modifier →
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigator.clipboard.writeText(`${window.location.origin}/agent/${agent.id}`)
+                      }
+                      className="self-start text-xs text-dj-texte-muet transition-colors hover:text-dj-texte"
+                    >
+                      Copier le lien
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
