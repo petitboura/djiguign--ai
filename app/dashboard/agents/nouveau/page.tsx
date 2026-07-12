@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { appelerApi } from "@/lib/api";
+import { appelerApi, appelerApiFichier } from "@/lib/api";
 import { TopBar } from "@/components/TopBar";
+import { ChampImage } from "@/components/ChampImage";
 
 // Étape D.6 (pivot social) : formulaire de création d'agent, nouveau flow
 // (voir PIVOT_SOCIAL.md — nom → icône → image vitrine → description →
@@ -64,6 +65,7 @@ export default function PageCreerAgent() {
   const [descriptionConnaissance, setDescriptionConnaissance] = useState("");
   const [lienNotion, setLienNotion] = useState("");
   const [texteLibre, setTexteLibre] = useState("");
+  const [fichierPdf, setFichierPdf] = useState<File | null>(null);
 
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -98,6 +100,7 @@ export default function PageCreerAgent() {
     }
 
     setEnvoi(true);
+    let idAgentCree: string | null = null;
     try {
       const reponse = await appelerApi("/api/agents", {
         method: "POST",
@@ -119,11 +122,31 @@ export default function PageCreerAgent() {
           description,
         }),
       });
-      router.push(`/agent/${reponse.id}`);
+      idAgentCree = reponse.id;
     } catch (e) {
       setErreur(e instanceof Error ? e.message : "Erreur inconnue.");
       setEnvoi(false);
+      return;
     }
+
+    // Le PDF est indexé APRÈS coup (POST /api/agents/{id}/documents,
+    // ajouté le 2026-07-12 — voir api/agents.py) : l'agent a besoin
+    // d'exister d'abord. Best-effort, même logique que
+    // faces/vues/creer_agent.py : un échec d'indexation n'annule pas la
+    // création déjà actée, juste un avertissement avant de continuer.
+    if (fichierPdf && idAgentCree) {
+      try {
+        await appelerApiFichier(`/api/agents/${idAgentCree}/documents`, fichierPdf);
+      } catch (e) {
+        window.alert(
+          `L'agent est créé, mais le PDF n'a pas pu être indexé : ${
+            e instanceof Error ? e.message : "erreur inconnue"
+          }. Tu pourras réessayer depuis "Mes agents".`
+        );
+      }
+    }
+
+    router.push(`/agent/${idAgentCree}`);
   }
 
   if (session === undefined || session === null) return null;
@@ -163,15 +186,11 @@ export default function PageCreerAgent() {
               />
             </div>
 
-            <div>
-              <label className={labelClasse}>URL image de vitrine</label>
-              <input
-                value={imageVitrineUrl}
-                onChange={(e) => setImageVitrineUrl(e.target.value)}
-                placeholder="https://..."
-                className={champClasse}
-              />
-            </div>
+            <ChampImage
+              label="Image de vitrine"
+              valeur={imageVitrineUrl}
+              onChange={setImageVitrineUrl}
+            />
 
             <div>
               <label className={labelClasse}>Description publique</label>
@@ -306,6 +325,19 @@ export default function PageCreerAgent() {
                 rows={4}
                 className={champClasse}
               />
+            </div>
+
+            <div>
+              <label className={labelClasse}>Document PDF (optionnel)</label>
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={(e) => setFichierPdf(e.target.files?.[0] ?? null)}
+                className="mt-1 w-full text-sm text-dj-texte file:mr-3 file:rounded-full file:border file:border-dj-bordure file:bg-dj-surface-haute file:px-4 file:py-2 file:text-xs file:text-dj-texte hover:file:border-dj-bordure-forte"
+              />
+              {fichierPdf && (
+                <p className="mt-1 text-xs text-dj-texte-muet">{fichierPdf.name}</p>
+              )}
             </div>
           </section>
 
