@@ -183,7 +183,15 @@ export default function PageDashboard() {
           {agents && agents.length > 0 && (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
               {agents.map((agent) => (
-                <AgentCard key={agent.id} agent={agent} />
+                <div key={agent.id} className="flex flex-col gap-2">
+                  <AgentCard agent={agent} />
+                  <Link
+                    href={`/dashboard/agents/${agent.id}/modifier`}
+                    className="self-start text-xs text-dj-accent-1 transition-colors hover:text-dj-accent-2"
+                  >
+                    Modifier →
+                  </Link>
+                </div>
               ))}
             </div>
           )}
