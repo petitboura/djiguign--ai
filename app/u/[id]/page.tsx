@@ -6,6 +6,7 @@ import { TopBar } from "@/components/TopBar";
 import { BoutonRetour } from "@/components/BoutonRetour";
 import { AgentCard, type AgentResume } from "@/components/AgentCard";
 import { BoutonFollow } from "@/components/BoutonFollow";
+import { BoutonPartager } from "@/components/BoutonPartager";
 
 // Étape D.4 (pivot social) : portfolio créateur `/u/[id]` (en pratique
 // user_id, pas un vrai slug — voir docstring de api/profiles.py et
@@ -72,7 +73,13 @@ export default async function PagePortfolio({ params }: { params: { id: string }
 
           {profil.bio && <p className="max-w-md text-dj-texte-muet">{profil.bio}</p>}
 
-          <BoutonFollow creatorId={profil.user_id} />
+          <div className="flex items-center gap-3">
+            <BoutonFollow creatorId={profil.user_id} />
+            <BoutonPartager
+              chemin={`/u/${profil.user_id}`}
+              titre={profil.nom_affiche || "Créateur"}
+            />
+          </div>
         </div>
 
         <section className="flex flex-col gap-4">
