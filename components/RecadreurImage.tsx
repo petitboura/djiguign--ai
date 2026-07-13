@@ -109,38 +109,60 @@ export function RecadreurImage({
     glisseRef.current = null;
   }
 
+  const [erreur, setErreur] = useState<string | null>(null);
+
   function valider() {
+    setErreur(null);
     if (!image) return;
-    // Rectangle source dans l'image ORIGINALE : le point (0,0) de la
-    // fenêtre d'aperçu correspond au pixel (-decalage.x/echelle,
-    // -decalage.y/echelle) de l'image, et la fenêtre entière fait
-    // (LARGEUR_APERCU/echelle) x (hauteurApercu/echelle) pixels réels.
-    const sx = -decalage.x / echelle;
-    const sy = -decalage.y / echelle;
-    const sw = LARGEUR_APERCU / echelle;
-    const sh = hauteurApercu / echelle;
+    try {
+      // Rectangle source dans l'image ORIGINALE : le point (0,0) de la
+      // fenêtre d'aperçu correspond au pixel (-decalage.x/echelle,
+      // -decalage.y/echelle) de l'image, et la fenêtre entière fait
+      // (LARGEUR_APERCU/echelle) x (hauteurApercu/echelle) pixels réels.
+      const sx = -decalage.x / echelle;
+      const sy = -decalage.y / echelle;
+      const sw = LARGEUR_APERCU / echelle;
+      const sh = hauteurApercu / echelle;
 
-    // Résolution de sortie : on garde une taille raisonnable plutôt que
-    // le fichier original (souvent bien plus gros que nécessaire pour un
-    // avatar 64px ou une carte de 320px de large) — 960px de large max,
-    // l'aspect ratio demandé décide de la hauteur.
-    const largeurSortie = Math.min(960, sw);
-    const hauteurSortie = largeurSortie / aspect;
+      // Résolution de sortie : on garde une taille raisonnable plutôt que
+      // le fichier original (souvent bien plus gros que nécessaire pour un
+      // avatar 64px ou une carte de 320px de large) — 960px de large max,
+      // l'aspect ratio demandé décide de la hauteur.
+      const largeurSortie = Math.min(960, sw);
+      const hauteurSortie = largeurSortie / aspect;
 
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(largeurSortie);
-    canvas.height = Math.round(hauteurSortie);
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.drawImage(image, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(largeurSortie);
+      canvas.height = Math.round(hauteurSortie);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        setErreur("Impossible de préparer l'image (canvas indisponible).");
+        return;
+      }
+      ctx.drawImage(image, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
-    canvas.toBlob(
-      (blob) => {
-        if (blob) onValider(blob);
-      },
-      "image/jpeg",
-      0.9
-    );
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            onValider(blob);
+          } else {
+            setErreur("Le recadrage a échoué (image vide).");
+          }
+        },
+        "image/jpeg",
+        0.9
+      );
+    } catch (e) {
+      // Avant ce fix (2026-07-13, Bourama : "après avoir cliqué, rien du
+      // tout"), une erreur ici (ex: canvas "tainted" par une image
+      // distante sans CORS correct) échouait silencieusement -- aucun
+      // retour visible, exactement le symptôme décrit.
+      setErreur(
+        e instanceof Error
+          ? `Échec du recadrage : ${e.message}`
+          : "Échec du recadrage (erreur inconnue)."
+      );
+    }
   }
 
   return (
@@ -190,6 +212,8 @@ export function RecadreurImage({
             className="flex-1"
           />
         </div>
+
+        {erreur && <p className="mt-2 text-xs text-[#F87171]">{erreur}</p>}
 
         <div className="mt-4 flex justify-end gap-2">
           <button

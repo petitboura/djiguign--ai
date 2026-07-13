@@ -356,7 +356,20 @@ export function AgentCard({
     <>
       {editable ? (
         <div
-          onClick={() => router.push(`/agent/${agent.id}`)}
+          onClick={(e) => {
+            // Garde structurelle (2026-07-13, Bourama : "après avoir
+            // cliqué [sur Ajouter une image vitrine], rien du tout") :
+            // ne navigue QUE si le clic vient directement de ce fond de
+            // carte, jamais d'un descendant (bouton image/description/
+            // icône/actif). Plus fiable que de compter sur le
+            // stopPropagation() de chaque zone interactive individuelle
+            // -- un seul oubli suffisait à déclencher une navigation
+            // pendant qu'un sélecteur de fichier natif était ouvert,
+            // démontant la carte avant même que le fichier soit choisi.
+            if (e.target === e.currentTarget) {
+              router.push(`/agent/${agent.id}`);
+            }
+          }}
           className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-dj-bordure bg-dj-surface transition-colors hover:border-dj-bordure-forte"
         >
           {contenu}
