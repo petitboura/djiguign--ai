@@ -85,14 +85,25 @@ export function ChampImage({
         </div>
 
         <div className="flex flex-col gap-1">
-          <button
-            type="button"
-            disabled={envoi}
-            onClick={() => inputRef.current?.click()}
-            className="rounded-full border border-dj-bordure px-4 py-2 text-xs text-dj-texte transition-colors hover:border-dj-bordure-forte disabled:opacity-50"
-          >
-            {envoi ? "Envoi…" : valeur ? "Changer l'image" : "Choisir une image"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={envoi}
+              onClick={() => inputRef.current?.click()}
+              className="rounded-full border border-dj-bordure px-4 py-2 text-xs text-dj-texte transition-colors hover:border-dj-bordure-forte disabled:opacity-50"
+            >
+              {envoi ? "Envoi…" : valeur ? "Changer l'image" : "Choisir une image"}
+            </button>
+            {valeur && !envoi && (
+              <button
+                type="button"
+                onClick={() => onChange("")}
+                className="rounded-full border border-dj-bordure px-4 py-2 text-xs text-dj-texte-muet transition-colors hover:border-[#F87171] hover:text-[#F87171]"
+              >
+                Supprimer
+              </button>
+            )}
+          </div>
           {erreur && <p className="text-xs text-[#F87171]">{erreur}</p>}
         </div>
 

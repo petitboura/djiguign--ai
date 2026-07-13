@@ -85,6 +85,12 @@ export default function PageDashboard() {
   }, [session]);
 
   function cliquerBouton(libelle: string) {
+    // Premier bouton branché (2026-07-12, Bourama) : les autres restent
+    // des placeholders pour l'instant, à brancher un par un.
+    if (libelle === "Modifier le profil") {
+      router.push("/dashboard/profil/modifier");
+      return;
+    }
     setMessageBouton(`« ${libelle} » arrive bientôt, pas encore branché.`);
   }
 
