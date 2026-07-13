@@ -22,6 +22,13 @@ import { RecadreurImage } from "@/components/RecadreurImage";
 // pas une nouvelle prop à part : ça évite de devoir mettre à jour tous
 // les endroits qui utilisent déjà ce composant.
 
+// Fix du 2026-07-12 (ter, même jour) : Bourama a signalé qu'il fallait
+// aussi pouvoir recadrer une image DÉJÀ existante (pas seulement au
+// moment de l'upload) -- ajout d'un bouton "Recadrer" à côté de "Changer
+// l'image"/"Supprimer", qui rouvre RecadreurImage directement sur l'URL
+// actuelle (voir RecadreurImage.tsx, prop `source` qui accepte maintenant
+// une URL en plus d'un nouveau fichier).
+
 export function ChampImage({
   valeur,
   onChange,
@@ -36,7 +43,7 @@ export function ChampImage({
   const inputRef = useRef<HTMLInputElement>(null);
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
-  const [fichierACadrer, setFichierACadrer] = useState<File | null>(null);
+  const [sourceACadrer, setSourceACadrer] = useState<File | string | null>(null);
 
   const aspect = rond ? 1 : 16 / 9;
 
@@ -46,11 +53,11 @@ export function ChampImage({
     setErreur(null);
     // Pas d'upload immédiat : on ouvre d'abord le recadrage, l'upload ne
     // part qu'après validation (voir envoyerImageCadree).
-    setFichierACadrer(fichier);
+    setSourceACadrer(fichier);
   }
 
   async function envoyerImageCadree(blob: Blob) {
-    setFichierACadrer(null);
+    setSourceACadrer(null);
     setEnvoi(true);
     try {
       const fichierCadre = new File([blob], "image-recadree.jpg", { type: "image/jpeg" });
@@ -85,7 +92,7 @@ export function ChampImage({
         </div>
 
         <div className="flex flex-col gap-1">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               disabled={envoi}
@@ -95,13 +102,22 @@ export function ChampImage({
               {envoi ? "Envoi…" : valeur ? "Changer l'image" : "Choisir une image"}
             </button>
             {valeur && !envoi && (
-              <button
-                type="button"
-                onClick={() => onChange("")}
-                className="rounded-full border border-dj-bordure px-4 py-2 text-xs text-dj-texte-muet transition-colors hover:border-[#F87171] hover:text-[#F87171]"
-              >
-                Supprimer
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setSourceACadrer(valeur)}
+                  className="rounded-full border border-dj-bordure px-4 py-2 text-xs text-dj-texte transition-colors hover:border-dj-bordure-forte"
+                >
+                  Recadrer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onChange("")}
+                  className="rounded-full border border-dj-bordure px-4 py-2 text-xs text-dj-texte-muet transition-colors hover:border-[#F87171] hover:text-[#F87171]"
+                >
+                  Supprimer
+                </button>
+              </>
             )}
           </div>
           {erreur && <p className="text-xs text-[#F87171]">{erreur}</p>}
@@ -116,13 +132,13 @@ export function ChampImage({
         />
       </div>
 
-      {fichierACadrer && (
+      {sourceACadrer && (
         <RecadreurImage
-          fichier={fichierACadrer}
+          source={sourceACadrer}
           aspect={aspect}
           onValider={envoyerImageCadree}
           onAnnuler={() => {
-            setFichierACadrer(null);
+            setSourceACadrer(null);
             if (inputRef.current) inputRef.current.value = "";
           }}
         />
