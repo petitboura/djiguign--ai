@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { appelerApiPublicOuNull } from "@/lib/api-serveur";
 import { TopBar } from "@/components/TopBar";
 import { BoutonRetour } from "@/components/BoutonRetour";
+import { BoutonAccueil } from "@/components/BoutonAccueil";
 import { AgentCard, type AgentResume } from "@/components/AgentCard";
 import { BoutonFollow } from "@/components/BoutonFollow";
 import { BoutonPartager } from "@/components/BoutonPartager";
@@ -50,7 +51,10 @@ export default async function PagePortfolio({ params }: { params: { id: string }
       <TopBar />
 
       <main className="mx-auto flex max-w-3xl flex-col gap-8 px-5 py-10">
-        <BoutonRetour />
+        <div className="flex gap-2">
+          <BoutonRetour />
+          <BoutonAccueil />
+        </div>
 
         <div className="flex flex-col items-center gap-4 text-center">
           <div className="relative h-24 w-24 overflow-hidden rounded-full border border-dj-bordure bg-dj-surface-haute">

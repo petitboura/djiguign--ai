@@ -11,6 +11,8 @@ import { TopBar } from "@/components/TopBar";
 import { BoutonFollow } from "@/components/BoutonFollow";
 import { BoutonPartager } from "@/components/BoutonPartager";
 import { HistoriqueConversations } from "@/components/HistoriqueConversations";
+import { BoutonRetour } from "@/components/BoutonRetour";
+import { BoutonAccueil } from "@/components/BoutonAccueil";
 
 // Refonte du 2026-07-12 (Bourama) : "Mon espace" doit ressembler
 // EXACTEMENT au portfolio public tel que tout le monde le voit
@@ -103,6 +105,11 @@ export default function PageDashboard() {
       <TopBar />
 
       <main className="mx-auto flex max-w-5xl flex-col gap-8 px-5 py-10">
+        <div className="flex gap-2">
+          <BoutonRetour />
+          <BoutonAccueil />
+        </div>
+
         <div className="flex flex-col items-center gap-4 text-center">
           <div className="relative h-24 w-24 overflow-hidden rounded-full border border-dj-bordure bg-dj-surface-haute">
             {profil?.avatar_url ? (

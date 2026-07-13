@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { BoutonRetour } from "@/components/BoutonRetour";
+import { BoutonAccueil } from "@/components/BoutonAccueil";
 
 export default function PageMotDePasseOublie() {
   const [email, setEmail] = useState("");
@@ -67,9 +68,10 @@ export default function PageMotDePasseOublie() {
           )}
         </div>
 
-        <p className="mt-5 text-center text-sm">
+        <div className="mt-5 flex justify-center gap-2">
           <BoutonRetour />
-        </p>
+          <BoutonAccueil />
+        </div>
       </div>
     </main>
   );

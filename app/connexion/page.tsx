@@ -7,6 +7,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { ChampMotDePasse } from "@/components/ChampMotDePasse";
 import { BoutonRetour } from "@/components/BoutonRetour";
+import { BoutonAccueil } from "@/components/BoutonAccueil";
 
 export default function PageConnexion() {
   const router = useRouter();
@@ -38,8 +39,9 @@ export default function PageConnexion() {
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <div className="mb-5">
+        <div className="mb-5 flex gap-2">
           <BoutonRetour />
+          <BoutonAccueil />
         </div>
         <Link href="/" className="mb-8 flex items-center justify-center gap-2.5">
           <Image src="/logo.png" alt="Djiguignè AI" width={36} height={36} priority />

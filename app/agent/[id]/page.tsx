@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { appelerApiPublicOuNull } from "@/lib/api-serveur";
 import { TopBar } from "@/components/TopBar";
 import { BoutonRetour } from "@/components/BoutonRetour";
+import { BoutonAccueil } from "@/components/BoutonAccueil";
 import { BoutonUtiliser } from "@/components/BoutonUtiliser";
 import { NoteAgent } from "@/components/NoteAgent";
 import { CommentairesAgent } from "@/components/CommentairesAgent";
@@ -57,7 +58,10 @@ export default async function PageAgent({ params }: { params: { id: string } }) 
       <TopBar />
 
       <main className="mx-auto flex max-w-3xl flex-col gap-8 px-5 py-10">
-        <BoutonRetour />
+        <div className="flex gap-2">
+          <BoutonRetour />
+          <BoutonAccueil />
+        </div>
 
         <div className="overflow-hidden rounded-2xl border border-dj-bordure bg-dj-surface">
           <div className="relative flex aspect-[16/9] items-center justify-center bg-dj-surface-haute">

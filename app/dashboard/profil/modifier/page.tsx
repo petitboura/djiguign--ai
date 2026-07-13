@@ -7,6 +7,7 @@ import { appelerApi } from "@/lib/api";
 import { revaliderPortfolioPublic } from "@/app/actions";
 import { TopBar } from "@/components/TopBar";
 import { BoutonRetour } from "@/components/BoutonRetour";
+import { BoutonAccueil } from "@/components/BoutonAccueil";
 import { ChampImage } from "@/components/ChampImage";
 
 // Formulaire d'édition de profil, déplacé depuis app/dashboard/page.tsx
@@ -100,7 +101,10 @@ export default function PageModifierProfil() {
     <div className="min-h-screen">
       <TopBar />
       <main className="mx-auto flex max-w-2xl flex-col gap-6 px-5 py-10">
-        <BoutonRetour />
+        <div className="flex gap-2">
+          <BoutonRetour />
+          <BoutonAccueil />
+        </div>
         <h1 className="font-display text-2xl font-bold text-dj-texte">Modifier le profil</h1>
 
         <form
