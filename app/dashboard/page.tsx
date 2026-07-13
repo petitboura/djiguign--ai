@@ -53,6 +53,7 @@ export default function PageDashboard() {
   >(undefined);
   const [profil, setProfil] = useState<ProfilMoi | null>(null);
   const [messageBouton, setMessageBouton] = useState<string | null>(null);
+  const [bulleAgentsOuverte, setBulleAgentsOuverte] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -85,10 +86,14 @@ export default function PageDashboard() {
   }, [session]);
 
   function cliquerBouton(libelle: string) {
-    // Premier bouton branché (2026-07-12, Bourama) : les autres restent
-    // des placeholders pour l'instant, à brancher un par un.
+    // Boutons branchés (2026-07-12, Bourama) : les autres restent des
+    // placeholders pour l'instant, à brancher un par un.
     if (libelle === "Modifier le profil") {
       router.push("/dashboard/profil/modifier");
+      return;
+    }
+    if (libelle === "Modifier un agent") {
+      setBulleAgentsOuverte((v) => !v);
       return;
     }
     setMessageBouton(`« ${libelle} » arrive bientôt, pas encore branché.`);
@@ -136,14 +141,50 @@ export default function PageDashboard() {
         <div className="flex flex-col items-center gap-3">
           <div className="flex flex-wrap justify-center gap-3">
             {BOUTONS_ESPACE.map((libelle) => (
-              <button
-                key={libelle}
-                type="button"
-                onClick={() => cliquerBouton(libelle)}
-                className="rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
-              >
-                {libelle}
-              </button>
+              <div key={libelle} className="relative">
+                <button
+                  type="button"
+                  onClick={() => cliquerBouton(libelle)}
+                  className="rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
+                >
+                  {libelle}
+                </button>
+
+                {libelle === "Modifier un agent" && bulleAgentsOuverte && (
+                  <>
+                    {/* Zone invisible plein écran pour fermer la bulle en
+                        cliquant n'importe où ailleurs -- plus simple qu'un
+                        listener global (pas de fuite à nettoyer). */}
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setBulleAgentsOuverte(false)}
+                    />
+                    <div className="absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2 rounded-2xl border border-dj-bordure bg-dj-surface p-2 shadow-xl">
+                      {!profil || profil.agents.length === 0 ? (
+                        <p className="px-3 py-2 text-sm text-dj-texte-muet">
+                          Aucun agent créé pour l&apos;instant.
+                        </p>
+                      ) : (
+                        <div className="flex max-h-64 flex-col gap-1 overflow-y-auto">
+                          {profil.agents.map((agent) => (
+                            <Link
+                              key={agent.id}
+                              href={`/dashboard/agents/${agent.id}/modifier`}
+                              onClick={() => setBulleAgentsOuverte(false)}
+                              className="flex items-center gap-2 rounded-full px-3 py-2 text-left text-sm text-dj-texte transition-colors hover:bg-dj-surface-haute"
+                            >
+                              <span className="text-lg leading-none">
+                                {agent.icone_page ?? "🤖"}
+                              </span>
+                              <span className="truncate">{agent.nom}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
             ))}
           </div>
           {messageBouton && (
