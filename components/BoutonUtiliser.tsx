@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { useState } from "react";
 
 // Étape D.3 (pivot social) : le chat reste en Streamlit, définitivement
 // (voir PIVOT_SOCIAL.md, section "Ce qui ne change pas" — Étape 4 de
@@ -17,36 +16,9 @@ import { supabase } from "@/lib/supabase";
 // blanche. Si ça arrive en conditions réelles, prochaine IA : remplacer le
 // <iframe> par un simple lien "Ouvrir le chat" en nouvel onglet (supprimer
 // le mode popup, garder uniquement le mode plein écran).
-//
-// Connexion automatique (2026-07-12, Bourama : "dès que tu crées un compte
-// à la plateforme, tu es automatiquement connecté à tous les agents dans
-// la plateforme, sans exception") : si une session Supabase existe déjà
-// côté plateforme, ses jetons sont transmis dans l'URL du chat -- côté
-// Streamlit (faces/vues/chat.py, connexion_depuis_jetons), ils sont
-// échangés contre une session valide, puis retirés IMMÉDIATEMENT de l'URL
-// affichée. Point à garder en tête : un JWT transite brièvement dans une
-// URL (visible dans les logs serveur/historique navigateur le temps du
-// chargement) -- acceptable pour un jeton de courte durée de vie déjà en
-// HTTPS, mais si un jour un besoin de sécurité plus strict apparaît,
-// remplacer par un échange côté serveur (ex: code à usage unique) plutôt
-// que le jeton lui-même.
+
 export function BoutonUtiliser({ agentId }: { agentId: string }) {
   const [ouvert, setOuvert] = useState(false);
-  const [jetonsSession, setJetonsSession] = useState<{
-    access_token: string;
-    refresh_token: string;
-  } | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setJetonsSession({
-          access_token: session.access_token,
-          refresh_token: session.refresh_token,
-        });
-      }
-    });
-  }, []);
 
   const streamlitUrl = process.env.NEXT_PUBLIC_STREAMLIT_URL;
   if (!streamlitUrl) {
@@ -60,12 +32,7 @@ export function BoutonUtiliser({ agentId }: { agentId: string }) {
     );
   }
 
-  let lienChat = `${streamlitUrl.replace(/\/$/, "")}/?agent=${agentId}`;
-  if (jetonsSession) {
-    lienChat +=
-      `&access_token=${encodeURIComponent(jetonsSession.access_token)}` +
-      `&refresh_token=${encodeURIComponent(jetonsSession.refresh_token)}`;
-  }
+  const lienChat = `${streamlitUrl.replace(/\/$/, "")}/?agent=${agentId}`;
 
   return (
     <>
