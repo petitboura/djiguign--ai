@@ -9,12 +9,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 // et l'upload (voir ChampImage.tsx) : l'utilisateur choisit la zone
 // exacte, on exporte UNIQUEMENT cette zone en image finale avant l'envoi.
 //
-// Étendu le même jour (Bourama : "il faut aussi recadrer photo qui existe
-// déjà") : `source` accepte maintenant soit un `File` (nouvelle sélection,
-// comportement d'origine) soit une `string` (URL d'une image déjà
-// uploadée, pour la recadrer À NOUVEAU sans repartir d'un nouveau
-// fichier) — voir ChampImage.tsx, bouton "Recadrer".
-//
 // Volontairement sans librairie externe (pas de nouvelle dépendance npm à
 // installer) : juste un <img> déplacé/zoomé par transform CSS dans une
 // fenêtre de taille fixe, puis un <canvas> hors-écran pour découper la
@@ -25,13 +19,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const LARGEUR_APERCU = 320;
 
 export function RecadreurImage({
-  source,
+  fichier,
   aspect,
   onValider,
   onAnnuler,
 }: {
-  /** Nouveau fichier choisi, OU l'URL d'une image déjà uploadée à recadrer à nouveau. */
-  source: File | string;
+  fichier: File;
   /** Largeur / hauteur souhaitée, ex. 16/9 pour une vitrine, 1 pour un avatar rond. */
   aspect: number;
   onValider: (resultat: Blob) => void;
@@ -45,27 +38,19 @@ export function RecadreurImage({
 
   const hauteurApercu = LARGEUR_APERCU / aspect;
 
-  // Charge la source (fichier local OU URL distante déjà uploadée) dans
-  // une vraie balise <img> (nécessaire pour connaître ses dimensions
-  // naturelles et pour drawImage plus tard). `crossOrigin` est nécessaire
-  // pour pouvoir extraire l'image d'une URL distante (Supabase Storage)
-  // dans un <canvas> sans que ce soit considéré "tainted" par le
-  // navigateur -- sans effet néfaste sur une URL locale (objectURL).
+  // Charge le fichier choisi dans une vraie balise <img> (nécessaire pour
+  // connaître ses dimensions naturelles et pour drawImage plus tard).
   useEffect(() => {
-    const estFichier = typeof source !== "string";
-    const url = estFichier ? URL.createObjectURL(source as File) : (source as string);
+    const url = URL.createObjectURL(fichier);
     const img = new window.Image();
-    if (!estFichier) img.crossOrigin = "anonymous";
     img.onload = () => {
       setImage(img);
       setZoom(1);
       setDecalage({ x: 0, y: 0 });
     };
     img.src = url;
-    return () => {
-      if (estFichier) URL.revokeObjectURL(url);
-    };
-  }, [source]);
+    return () => URL.revokeObjectURL(url);
+  }, [fichier]);
 
   // Échelle de base : la plus grande des deux (largeur/hauteur) qui fait
   // que l'image couvre entièrement la fenêtre d'aperçu, sans bande vide —
