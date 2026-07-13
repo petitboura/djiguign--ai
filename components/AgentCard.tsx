@@ -146,13 +146,28 @@ export function AgentCard({
     <>
       <div className="relative flex aspect-[16/9] items-center justify-center overflow-hidden bg-dj-surface-haute">
         {donnees.image_vitrine_url ? (
-          <Image
-            src={donnees.image_vitrine_url}
-            alt={donnees.nom}
-            fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-            sizes="(min-width: 768px) 33vw, 100vw"
-          />
+          <>
+            <Image
+              src={donnees.image_vitrine_url}
+              alt={donnees.nom}
+              fill
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              sizes="(min-width: 768px) 33vw, 100vw"
+            />
+            {editable && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  stopper(e);
+                  inputImageRef.current?.click();
+                }}
+                disabled={envoiImage}
+                className="absolute bottom-2 left-2 z-10 rounded-full border border-dj-bordure bg-dj-fond/80 px-3 py-1 text-xs text-dj-texte transition-colors hover:border-dj-bordure-forte disabled:opacity-50"
+              >
+                {envoiImage ? "Envoi…" : "Changer l'image"}
+              </button>
+            )}
+          </>
         ) : editable ? (
           <button
             type="button"
@@ -189,7 +204,6 @@ export function AgentCard({
             ref={inputImageRef}
             type="file"
             accept="image/png,image/jpeg,image/webp"
-            onClick={stopper}
             onChange={(e) => {
               const f = e.target.files?.[0];
               if (f) setFichierACadrer(f);
@@ -287,40 +301,7 @@ export function AgentCard({
           <h3 className="font-display text-base font-bold text-dj-texte">{donnees.nom}</h3>
         </div>
 
-        {editable && edition === "description" ? (
-          <div onClick={stopper} className="flex flex-col gap-1.5">
-            <textarea
-              autoFocus
-              value={brouillonDescription}
-              onChange={(e) => setBrouillonDescription(e.target.value)}
-              rows={2}
-              className="w-full rounded-lg border border-dj-bordure bg-dj-surface-haute px-2 py-1.5 text-sm text-dj-texte outline-none focus:border-dj-accent-1"
-            />
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={(e) => {
-                  stopper(e);
-                  enregistrerDescription();
-                }}
-                disabled={envoiDescription}
-                className="rounded-full bg-dj-gradient px-3 py-1 text-xs font-bold text-[#1A0D02] disabled:opacity-50"
-              >
-                {envoiDescription ? "…" : "Enregistrer"}
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  stopper(e);
-                  setEdition(null);
-                }}
-                className="text-xs text-dj-texte-muet"
-              >
-                Annuler
-              </button>
-            </div>
-          </div>
-        ) : donnees.description ? (
+        {donnees.description ? (
           <p
             className={
               editable
@@ -399,6 +380,61 @@ export function AgentCard({
             if (inputImageRef.current) inputImageRef.current.value = "";
           }}
         />
+      )}
+
+      {editable && edition === "description" && (
+        // Popup, pas une zone de texte cramée dans la carte (Bourama,
+        // 2026-07-13 : "un pop up un peu plus grand, sinon pas cool à
+        // éditer tel quel") -- même style de modal que RecadreurImage,
+        // pour rester cohérent visuellement.
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={(e) => {
+            stopper(e);
+            setEdition(null);
+          }}
+        >
+          <div
+            className="w-full max-w-md rounded-lg border border-dj-bordure bg-dj-surface p-4"
+            onClick={stopper}
+          >
+            <p className="mb-3 text-sm font-medium text-dj-texte">
+              Description publique de {donnees.nom}
+            </p>
+            <textarea
+              autoFocus
+              value={brouillonDescription}
+              onChange={(e) => setBrouillonDescription(e.target.value)}
+              rows={6}
+              placeholder="En une ou deux phrases, ce que fait cet agent..."
+              className="w-full rounded-lg border border-dj-bordure bg-dj-surface-haute px-3 py-2 text-sm text-dj-texte outline-none focus:border-dj-accent-1"
+            />
+            {erreur && <p className="mt-2 text-xs text-[#F87171]">{erreur}</p>}
+            <div className="mt-3 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  stopper(e);
+                  setEdition(null);
+                }}
+                className="rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte-muet transition-colors hover:border-dj-bordure-forte"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  stopper(e);
+                  enregistrerDescription();
+                }}
+                disabled={envoiDescription}
+                className="rounded-full bg-dj-gradient px-4 py-2 text-sm font-bold text-[#1A0D02] disabled:opacity-50"
+              >
+                {envoiDescription ? "Enregistrement…" : "Enregistrer"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
