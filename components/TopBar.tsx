@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 // Nav de la PLATEFORME, volontairement différente du Header de
@@ -13,6 +14,11 @@ import { supabase } from "@/lib/supabase";
 // 404 par défaut tant que la page n'existe pas.
 export function TopBar() {
   const [email, setEmail] = useState<string | null | undefined>(undefined);
+  const pathname = usePathname();
+  // Corrigé le 2026-07-13 (Bourama : "'Mon espace' reste éteint même
+  // quand on est dedans") : aucun état actif n'était géré, le lien
+  // gardait la même apparence peu importe la page courante.
+  const dansMonEspace = pathname?.startsWith("/dashboard");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -45,7 +51,11 @@ export function TopBar() {
           <div className="flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
+              className={
+                dansMonEspace
+                  ? "rounded-full bg-dj-gradient px-4 py-2 text-sm font-bold text-[#1A0D02]"
+                  : "rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
+              }
             >
               Mon espace
             </Link>

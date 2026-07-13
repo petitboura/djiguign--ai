@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { appelerApi, appelerApiFichier } from "@/lib/api";
 import { TopBar } from "@/components/TopBar";
+import { BoutonRetour } from "@/components/BoutonRetour";
 import { ChampImage } from "@/components/ChampImage";
 
 // Étape D.6 (pivot social) : formulaire de création d'agent, nouveau flow
@@ -243,6 +244,9 @@ export default function PageCreerAgent() {
       <TopBar />
 
       <main className="mx-auto max-w-2xl px-5 py-10">
+        <div className="mb-5">
+          <BoutonRetour />
+        </div>
         <h1 className="font-display text-2xl font-bold text-dj-texte">Créer un agent</h1>
 
         <form onSubmit={gererSoumission} className="mt-6 flex flex-col gap-8">

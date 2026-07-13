@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { BoutonRetour } from "@/components/BoutonRetour";
 
 export default function PageMotDePasseOublie() {
   const [email, setEmail] = useState("");
@@ -67,10 +67,8 @@ export default function PageMotDePasseOublie() {
           )}
         </div>
 
-        <p className="mt-5 text-center text-sm text-dj-texte-muet">
-          <Link href="/connexion" className="text-dj-accent-1 hover:underline">
-            ← Retour à la connexion
-          </Link>
+        <p className="mt-5 text-center text-sm">
+          <BoutonRetour />
         </p>
       </div>
     </main>

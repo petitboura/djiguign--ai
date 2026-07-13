@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { appelerApi } from "@/lib/api";
 import { TopBar } from "@/components/TopBar";
 import { AgentCard, type AgentResume } from "@/components/AgentCard";
@@ -38,7 +37,7 @@ type EtatFeedCreateurs =
 type EtatRecherche =
   | { statut: "inactif" }
   | { statut: "chargement" }
-  | { statut: "ok"; agents: AgentResume[]; createurs: { user_id: string; nom_affiche: string }[] }
+  | { statut: "ok"; agents: AgentResume[]; createurs: CreateurResume[] }
   | { statut: "erreur"; message: string };
 
 export default function PageAccueil() {
@@ -366,15 +365,9 @@ function ResultatsRecherche({ etat }: { etat: EtatRecherche }) {
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-dj-texte-muet">
             Créateurs
           </h2>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             {etat.createurs.map((c) => (
-              <Link
-                key={c.user_id}
-                href={`/u/${c.user_id}`}
-                className="rounded-xl border border-dj-bordure bg-dj-surface px-4 py-3 text-dj-texte transition-colors hover:border-dj-bordure-forte"
-              >
-                {c.nom_affiche || "Créateur sans nom"}
-              </Link>
+              <CreateurCard key={c.user_id} createur={c} />
             ))}
           </div>
         </div>

@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { ChampMotDePasse } from "@/components/ChampMotDePasse";
+import { BoutonRetour } from "@/components/BoutonRetour";
 
 export default function PageInscription() {
   const [email, setEmail] = useState("");
@@ -60,6 +61,9 @@ export default function PageInscription() {
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm">
+        <div className="mb-5">
+          <BoutonRetour />
+        </div>
         <Link href="/" className="mb-8 flex items-center justify-center gap-2.5">
           <Image src="/logo.png" alt="Djiguignè AI" width={36} height={36} priority />
           <span className="font-display text-lg font-bold tracking-tight text-dj-texte">
