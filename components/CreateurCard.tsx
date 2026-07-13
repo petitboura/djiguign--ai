@@ -58,19 +58,14 @@ export function CreateurCard({ createur }: { createur: CreateurResume }) {
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="shrink-0 rounded-full border border-dj-accent-1 px-2 py-0.5 text-xs font-medium text-dj-accent-1">
-              {createur.nombre_agents} Agent{createur.nombre_agents !== 1 ? "s" : ""}
-            </span>
-            <h3 className="truncate font-display text-base font-bold text-dj-texte">{nom}</h3>
-          </div>
+          <h3 className="truncate font-display text-base font-bold text-dj-texte">{nom}</h3>
           {createur.bio && (
             <p className="mt-1 line-clamp-1 text-sm text-dj-texte-muet">{createur.bio}</p>
           )}
         </div>
       </Link>
 
-      <span className="shrink-0 text-sm text-dj-texte-muet">
+      <span className="shrink-0 rounded-full border border-dj-bordure px-4 py-1.5 text-sm text-dj-texte-muet">
         {nombreAbonnes !== null ? `${nombreAbonnes} abonné${nombreAbonnes !== 1 ? "s" : ""}` : "…"}
       </span>
     </div>
