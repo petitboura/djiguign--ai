@@ -11,6 +11,17 @@ import { supabase } from "@/lib/supabase";
 // cliquer dessus rouvre le chat de cet agent précis, déjà connecté (même
 // pont de session que components/BoutonUtiliser.tsx).
 //
+// Repositionné le 2026-07-13 (Bourama : la colonne fixe à gauche prenait
+// trop de place pour ce que c'est -- déplacé dans une bulle déclenchée par
+// un bouton "Historique", dans la même rangée que les autres boutons de
+// "Mon espace", voir app/dashboard/page.tsx. Ce composant ne rend donc
+// plus lui-même le déclencheur (bouton + état ouvert/fermé), seulement le
+// CONTENU de la bulle -- la page parente gère quand l'afficher, exactement
+// comme le fait déjà la bulle "Modifier un agent" juste à côté.
+// Affichage compacté en bulles (icône + nom) : le dernier message et
+// l'horodatage, utiles dans une colonne large, deviennent superflus dans
+// une bulle étroite -- retirés pour rester lisible.
+//
 // Le chat lui-même reste en Streamlit (voir PIVOT_SOCIAL.md, "ce qui ne
 // change pas") : ce composant ne fait qu'afficher la LISTE des
 // conversations et ouvrir la bonne, pas le contenu message par message
@@ -24,16 +35,6 @@ type Conversation = {
   dernier_message_role: string;
   derniere_activite: string;
 };
-
-function formaterActivite(dateIso: string): string {
-  const diffMs = Date.now() - new Date(dateIso).getTime();
-  const diffHeures = diffMs / (1000 * 60 * 60);
-  if (diffHeures < 1) return "à l'instant";
-  if (diffHeures < 24) return `il y a ${Math.floor(diffHeures)} h`;
-  const diffJours = Math.floor(diffHeures / 24);
-  if (diffJours < 7) return `il y a ${diffJours} j`;
-  return new Date(dateIso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
-}
 
 export function HistoriqueConversations() {
   const [conversations, setConversations] = useState<Conversation[] | null>(null);
@@ -65,45 +66,31 @@ export function HistoriqueConversations() {
     window.open(lien, "_blank", "noopener,noreferrer");
   }
 
+  if (conversations === null) {
+    return <p className="px-1 text-sm text-dj-texte-muet">Chargement...</p>;
+  }
+
+  if (conversations.length === 0) {
+    return (
+      <p className="px-1 text-sm text-dj-texte-muet">
+        Aucune conversation pour l&apos;instant.
+      </p>
+    );
+  }
+
   return (
-    <aside className="w-full shrink-0 md:w-64">
-      <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-dj-texte-muet">
-        Conversations
-      </h2>
-
-      {conversations === null && (
-        <p className="px-1 text-sm text-dj-texte-muet">Chargement...</p>
-      )}
-
-      {conversations?.length === 0 && (
-        <p className="px-1 text-sm text-dj-texte-muet">
-          Aucune conversation pour l&apos;instant.
-        </p>
-      )}
-
-      <div className="flex flex-col gap-1">
-        {conversations?.map((conv) => (
-          <button
-            key={conv.agent_id}
-            onClick={() => ouvrirConversation(conv.agent_id)}
-            className="flex items-start gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-dj-surface-haute"
-          >
-            <span className="text-lg leading-none">{conv.agent_icone}</span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium text-dj-texte">
-                {conv.agent_nom}
-              </span>
-              <span className="block truncate text-xs text-dj-texte-muet">
-                {conv.dernier_message_role === "user" ? "Toi : " : ""}
-                {conv.dernier_message}
-              </span>
-            </span>
-            <span className="shrink-0 text-[10px] text-dj-texte-muet">
-              {formaterActivite(conv.derniere_activite)}
-            </span>
-          </button>
-        ))}
-      </div>
-    </aside>
+    <div className="flex max-h-72 flex-wrap gap-2 overflow-y-auto p-1">
+      {conversations.map((conv) => (
+        <button
+          key={conv.agent_id}
+          onClick={() => ouvrirConversation(conv.agent_id)}
+          title={conv.agent_nom}
+          className="flex items-center gap-1.5 rounded-full border border-dj-bordure bg-dj-surface-haute px-3 py-1.5 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
+        >
+          <span className="text-base leading-none">{conv.agent_icone}</span>
+          <span className="max-w-[9rem] truncate">{conv.agent_nom}</span>
+        </button>
+      ))}
+    </div>
   );
 }

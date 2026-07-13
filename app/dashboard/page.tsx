@@ -54,6 +54,7 @@ export default function PageDashboard() {
   const [profil, setProfil] = useState<ProfilMoi | null>(null);
   const [messageBouton, setMessageBouton] = useState<string | null>(null);
   const [bulleAgentsOuverte, setBulleAgentsOuverte] = useState(false);
+  const [bulleHistoriqueOuverte, setBulleHistoriqueOuverte] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -101,10 +102,7 @@ export default function PageDashboard() {
     <div className="min-h-screen">
       <TopBar />
 
-      <main className="mx-auto flex max-w-5xl items-start gap-8 px-5 py-10">
-        <HistoriqueConversations />
-
-        <div className="flex min-w-0 flex-1 flex-col gap-8">
+      <main className="mx-auto flex max-w-5xl flex-col gap-8 px-5 py-10">
         <div className="flex flex-col items-center gap-4 text-center">
           <div className="relative h-24 w-24 overflow-hidden rounded-full border border-dj-bordure bg-dj-surface-haute">
             {profil?.avatar_url ? (
@@ -139,6 +137,28 @@ export default function PageDashboard() {
 
         <div className="flex flex-col items-center gap-3">
           <div className="flex flex-wrap justify-center gap-3">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setBulleHistoriqueOuverte((v) => !v)}
+                className="rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
+              >
+                Historique
+              </button>
+
+              {bulleHistoriqueOuverte && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setBulleHistoriqueOuverte(false)}
+                  />
+                  <div className="absolute left-1/2 top-full z-50 mt-2 w-80 -translate-x-1/2 rounded-2xl border border-dj-bordure bg-dj-surface p-3 shadow-xl">
+                    <HistoriqueConversations />
+                  </div>
+                </>
+              )}
+            </div>
+
             {BOUTONS_ESPACE.map((libelle) => (
               <button
                 key={libelle}
@@ -253,7 +273,6 @@ export default function PageDashboard() {
             </div>
           )}
         </section>
-        </div>
       </main>
     </div>
   );
