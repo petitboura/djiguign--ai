@@ -10,6 +10,7 @@ import { AgentCard, type AgentResume } from "@/components/AgentCard";
 import { TopBar } from "@/components/TopBar";
 import { BoutonFollow } from "@/components/BoutonFollow";
 import { BoutonPartager } from "@/components/BoutonPartager";
+import { HistoriqueConversations } from "@/components/HistoriqueConversations";
 
 // Refonte du 2026-07-12 (Bourama) : "Mon espace" doit ressembler
 // EXACTEMENT au portfolio public tel que tout le monde le voit
@@ -100,7 +101,10 @@ export default function PageDashboard() {
     <div className="min-h-screen">
       <TopBar />
 
-      <main className="mx-auto flex max-w-3xl flex-col gap-8 px-5 py-10">
+      <main className="mx-auto flex max-w-5xl items-start gap-8 px-5 py-10">
+        <HistoriqueConversations />
+
+        <div className="flex min-w-0 flex-1 flex-col gap-8">
         <div className="flex flex-col items-center gap-4 text-center">
           <div className="relative h-24 w-24 overflow-hidden rounded-full border border-dj-bordure bg-dj-surface-haute">
             {profil?.avatar_url ? (
@@ -249,6 +253,7 @@ export default function PageDashboard() {
             </div>
           )}
         </section>
+        </div>
       </main>
     </div>
   );
