@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { ChampMotDePasse } from "@/components/ChampMotDePasse";
 
 export default function PageConnexion() {
   const router = useRouter();
@@ -61,19 +62,14 @@ export default function PageConnexion() {
               />
             </div>
 
-            <div>
-              <label htmlFor="mot-de-passe" className="block text-sm font-medium text-dj-texte-muet">
-                Mot de passe
-              </label>
-              <input
-                id="mot-de-passe"
-                type="password"
-                required
-                value={motDePasse}
-                onChange={(e) => setMotDePasse(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-dj-bordure bg-dj-surface-haute px-3 py-2 text-dj-texte outline-none focus:border-dj-accent-1"
-              />
-            </div>
+            <ChampMotDePasse id="mot-de-passe" value={motDePasse} onChange={setMotDePasse} />
+
+            <Link
+              href="/mot-de-passe-oublie"
+              className="block text-right text-xs text-dj-accent-1 hover:underline"
+            >
+              Mot de passe oublié ?
+            </Link>
 
             {erreur && <p className="text-sm text-[#F87171]">{erreur}</p>}
 
