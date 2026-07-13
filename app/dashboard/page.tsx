@@ -40,7 +40,6 @@ type ProfilMoi = {
 
 const BOUTONS_ESPACE = [
   "Modifier le profil",
-  "Modifier un agent",
   "Publier un article",
   "Amis",
   "Analytique",
@@ -92,10 +91,6 @@ export default function PageDashboard() {
       router.push("/dashboard/profil/modifier");
       return;
     }
-    if (libelle === "Modifier un agent") {
-      setBulleAgentsOuverte((v) => !v);
-      return;
-    }
     setMessageBouton(`« ${libelle} » arrive bientôt, pas encore branché.`);
   }
 
@@ -141,16 +136,54 @@ export default function PageDashboard() {
         <div className="flex flex-col items-center gap-3">
           <div className="flex flex-wrap justify-center gap-3">
             {BOUTONS_ESPACE.map((libelle) => (
-              <div key={libelle} className="relative">
+              <button
+                key={libelle}
+                type="button"
+                onClick={() => cliquerBouton(libelle)}
+                className="rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
+              >
+                {libelle}
+              </button>
+            ))}
+          </div>
+          {messageBouton && (
+            <p className="text-sm text-dj-texte-muet">{messageBouton}</p>
+          )}
+        </div>
+
+        <section className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-lg font-bold text-dj-texte">
+              Agents créés ({profil?.agents.length ?? 0})
+            </h2>
+            <div className="flex items-center gap-2">
+              <div className="relative">
                 <button
                   type="button"
-                  onClick={() => cliquerBouton(libelle)}
-                  className="rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
+                  onClick={() => setBulleAgentsOuverte((v) => !v)}
+                  className="flex items-center gap-1.5 rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
                 >
-                  {libelle}
+                  {/* Icône crayon en currentColor : exactement la même
+                      couleur que le texte du bouton, jamais l'accent --
+                      voir demande de Bourama ("pas en couleur, exactement
+                      le même couleur que le texte"). */}
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                  </svg>
+                  Modifier un agent
                 </button>
 
-                {libelle === "Modifier un agent" && bulleAgentsOuverte && (
+                {bulleAgentsOuverte && (
                   <>
                     {/* Zone invisible plein écran pour fermer la bulle en
                         cliquant n'importe où ailleurs -- plus simple qu'un
@@ -159,7 +192,7 @@ export default function PageDashboard() {
                       className="fixed inset-0 z-40"
                       onClick={() => setBulleAgentsOuverte(false)}
                     />
-                    <div className="absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2 rounded-2xl border border-dj-bordure bg-dj-surface p-2 shadow-xl">
+                    <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-dj-bordure bg-dj-surface p-2 shadow-xl">
                       {!profil || profil.agents.length === 0 ? (
                         <p className="px-3 py-2 text-sm text-dj-texte-muet">
                           Aucun agent créé pour l&apos;instant.
@@ -185,24 +218,14 @@ export default function PageDashboard() {
                   </>
                 )}
               </div>
-            ))}
-          </div>
-          {messageBouton && (
-            <p className="text-sm text-dj-texte-muet">{messageBouton}</p>
-          )}
-        </div>
 
-        <section className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg font-bold text-dj-texte">
-              Agents créés ({profil?.agents.length ?? 0})
-            </h2>
-            <Link
-              href="/dashboard/agents/nouveau"
-              className="rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
-            >
-              + Créer un agent
-            </Link>
+              <Link
+                href="/dashboard/agents/nouveau"
+                className="rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
+              >
+                + Créer un agent
+              </Link>
+            </div>
           </div>
 
           {profil === null && <p className="text-sm text-dj-texte-muet">Chargement...</p>}
