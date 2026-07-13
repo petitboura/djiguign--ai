@@ -18,6 +18,12 @@ export type AgentResume = {
   icone_page?: string;
   image_vitrine_url?: string | null;
   description?: string;
+  // Ajouté le 2026-07-13 (Bourama : bouton on/off pour (dés)activer un
+  // agent publiquement). Optionnel + défaut True partout où lu (même
+  // convention "absent/NULL = actif" que le backend) : GET /api/feed et
+  // GET /api/search ne renvoient pas ce champ, seul GET /api/profiles/
+  // {id} le fait (voir api/profiles.py, AgentDuCreateur).
+  actif?: boolean;
 };
 
 // Édition en ligne ajoutée le 2026-07-12 (Bourama, capture d'écran "Mes
@@ -52,13 +58,33 @@ export function AgentCard({
   const [envoiDescription, setEnvoiDescription] = useState(false);
   const [envoiIcone, setEnvoiIcone] = useState(false);
   const [envoiImage, setEnvoiImage] = useState(false);
+  const [envoiActif, setEnvoiActif] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [fichierACadrer, setFichierACadrer] = useState<File | null>(null);
   const inputImageRef = useRef<HTMLInputElement>(null);
 
+  const estActif = donnees.actif ?? true;
+
   function stopper(e: { preventDefault: () => void; stopPropagation: () => void }) {
     e.preventDefault();
     e.stopPropagation();
+  }
+
+  async function basculerActif() {
+    const nouveauActif = !estActif;
+    setEnvoiActif(true);
+    setErreur(null);
+    try {
+      await appelerApi(`/api/agents/${agent.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ actif: nouveauActif }),
+      });
+      setDonnees((d) => ({ ...d, actif: nouveauActif }));
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : "Erreur inconnue.");
+    } finally {
+      setEnvoiActif(false);
+    }
   }
 
   async function enregistrerDescription() {
@@ -170,6 +196,25 @@ export function AgentCard({
             }}
             className="hidden"
           />
+        )}
+
+        {editable && (
+          <button
+            type="button"
+            onClick={(e) => {
+              stopper(e);
+              basculerActif();
+            }}
+            disabled={envoiActif}
+            title={estActif ? "Agent public : clique pour rendre privé" : "Agent privé : clique pour rendre public"}
+            className={
+              estActif
+                ? "absolute right-2 top-2 z-10 rounded-full bg-dj-gradient px-3 py-1 text-xs font-bold text-[#1A0D02] disabled:opacity-50"
+                : "absolute right-2 top-2 z-10 rounded-full border border-dj-bordure bg-dj-fond/80 px-3 py-1 text-xs text-dj-texte-muet disabled:opacity-50"
+            }
+          >
+            {envoiActif ? "…" : estActif ? "Public" : "Privé"}
+          </button>
         )}
       </div>
 
