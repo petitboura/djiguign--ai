@@ -260,7 +260,7 @@ export default function PageDashboard() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
               {profil.agents.map((agent) => (
                 <div key={agent.id} className="flex flex-col gap-2">
-                  <AgentCard agent={agent} />
+                  <AgentCard agent={agent} editable />
                   <div className="flex items-center gap-3">
                     <BoutonPartager
                       chemin={`/agent/${agent.id}`}

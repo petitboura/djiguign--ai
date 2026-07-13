@@ -69,7 +69,7 @@ export function BoutonFollow({ creatorId }: { creatorId: string }) {
           {etat?.suivi_par_moi ? "Suivi" : "Suivre"}
         </button>
       )}
-      <span className="text-sm text-dj-texte-muet">
+      <span className="rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte-muet">
         {etat ? `${etat.total} abonné${etat.total > 1 ? "s" : ""}` : "..."}
       </span>
     </div>
