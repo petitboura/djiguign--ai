@@ -42,7 +42,8 @@ const BOUTONS_ESPACE = [
   "Modifier le profil",
   "Modifier un agent",
   "Publier un article",
-  "Amis et Analytique",
+  "Amis",
+  "Analytique",
 ] as const;
 
 export default function PageDashboard() {
@@ -167,12 +168,6 @@ export default function PageDashboard() {
                 <div key={agent.id} className="flex flex-col gap-2">
                   <AgentCard agent={agent} />
                   <div className="flex items-center gap-3">
-                    <Link
-                      href={`/dashboard/agents/${agent.id}/modifier`}
-                      className="self-start text-xs text-dj-accent-1 transition-colors hover:text-dj-accent-2"
-                    >
-                      Modifier →
-                    </Link>
                     <BoutonPartager
                       chemin={`/agent/${agent.id}`}
                       titre={agent.nom}
