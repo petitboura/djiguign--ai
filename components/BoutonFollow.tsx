@@ -49,13 +49,14 @@ export function BoutonFollow({ creatorId }: { creatorId: string }) {
     }
   }
 
-  // Pas de bouton pour se suivre soi-même (422 côté backend de toute
-  // façon, mais autant ne pas l'afficher).
-  if (connecte && monId === creatorId) return null;
+  const cestMoi = connecte && monId === creatorId;
 
   return (
     <div className="flex items-center gap-3">
-      {connecte && (
+      {/* Pas de bouton pour se suivre soi-même (422 côté backend de toute
+          façon, mais autant ne pas l'afficher) -- le compteur, lui, reste
+          visible : Bourama doit voir son propre nombre d'abonnés. */}
+      {connecte && !cestMoi && (
         <button
           onClick={basculer}
           disabled={envoi || !etat}
