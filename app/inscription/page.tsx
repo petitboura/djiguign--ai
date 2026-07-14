@@ -4,14 +4,19 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { inscrireOuConnecter } from "@/lib/authFallback";
 import { ChampMotDePasse } from "@/components/ChampMotDePasse";
+import { ChampTelephone } from "@/components/ChampTelephone";
 import { BoutonRetour } from "@/components/BoutonRetour";
 import { BoutonAccueil } from "@/components/BoutonAccueil";
 
+type MethodeInscription = "email" | "telephone";
+
 export default function PageInscription() {
   const router = useRouter();
+  const [methode, setMethode] = useState<MethodeInscription>("email");
   const [email, setEmail] = useState("");
+  const [telephone, setTelephone] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -21,10 +26,15 @@ export default function PageInscription() {
     setErreur(null);
     setEnCours(true);
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password: motDePasse,
-    });
+    // Ce compte existe déjà avec ces identifiants ? On connecte directement,
+    // pas besoin de repasser par la page connexion (voir lib/authFallback.ts).
+    const { error } =
+      methode === "email"
+        ? await inscrireOuConnecter({ email, password: motDePasse })
+        : await inscrireOuConnecter({
+            phone: telephone.replace(/\s+/g, ""),
+            password: motDePasse,
+          });
 
     setEnCours(false);
 
@@ -53,20 +63,49 @@ export default function PageInscription() {
         <div className="rounded-2xl border border-dj-bordure bg-dj-surface p-6 shadow-[0_2px_24px_rgba(0,0,0,0.35)]">
           <h1 className="font-display text-xl font-bold text-dj-texte">Créer un compte</h1>
 
-          <form onSubmit={gererSoumission} className="mt-6 space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-dj-texte-muet">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-dj-bordure bg-dj-surface-haute px-3 py-2 text-dj-texte outline-none focus:border-dj-accent-1"
-              />
-            </div>
+          <div className="mt-4 grid grid-cols-2 gap-2 rounded-full border border-dj-bordure bg-dj-surface-haute p-1">
+            <button
+              type="button"
+              onClick={() => setMethode("email")}
+              className={`rounded-full py-1.5 text-sm font-medium transition-colors ${
+                methode === "email"
+                  ? "bg-dj-gradient text-[#1A0D02]"
+                  : "text-dj-texte-muet hover:text-dj-texte"
+              }`}
+            >
+              Email
+            </button>
+            <button
+              type="button"
+              onClick={() => setMethode("telephone")}
+              className={`rounded-full py-1.5 text-sm font-medium transition-colors ${
+                methode === "telephone"
+                  ? "bg-dj-gradient text-[#1A0D02]"
+                  : "text-dj-texte-muet hover:text-dj-texte"
+              }`}
+            >
+              Téléphone
+            </button>
+          </div>
+
+          <form onSubmit={gererSoumission} className="mt-4 space-y-4">
+            {methode === "email" ? (
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-dj-texte-muet">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-dj-bordure bg-dj-surface-haute px-3 py-2 text-dj-texte outline-none focus:border-dj-accent-1"
+                />
+              </div>
+            ) : (
+              <ChampTelephone id="telephone" value={telephone} onChange={setTelephone} />
+            )}
 
             <ChampMotDePasse
               id="mot-de-passe"
