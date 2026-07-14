@@ -3,17 +3,18 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { ChampMotDePasse } from "@/components/ChampMotDePasse";
 import { BoutonRetour } from "@/components/BoutonRetour";
 import { BoutonAccueil } from "@/components/BoutonAccueil";
 
 export default function PageInscription() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
-  const [inscrit, setInscrit] = useState(false);
 
   async function gererSoumission(e: React.FormEvent) {
     e.preventDefault();
@@ -32,31 +33,7 @@ export default function PageInscription() {
       return;
     }
 
-    setInscrit(true);
-  }
-
-  if (inscrit) {
-    return (
-      <main className="flex min-h-screen items-center justify-center px-4">
-        <div className="w-full max-w-sm text-center">
-          <Image
-            src="/logo.png"
-            alt="Djiguignè AI"
-            width={40}
-            height={40}
-            priority
-            className="mx-auto mb-6 animate-dj-glow"
-          />
-          <h1 className="font-display text-xl font-bold text-dj-texte">
-            Vérifie ta boîte mail
-          </h1>
-          <p className="mt-2 text-sm text-dj-texte-muet">
-            Un lien de confirmation vient d&apos;être envoyé à{" "}
-            <span className="text-dj-texte">{email}</span>.
-          </p>
-        </div>
-      </main>
-    );
+    router.push("/");
   }
 
   return (
