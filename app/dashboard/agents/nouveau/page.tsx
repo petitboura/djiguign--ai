@@ -9,6 +9,7 @@ import { BoutonRetour } from "@/components/BoutonRetour";
 import { BoutonAccueil } from "@/components/BoutonAccueil";
 import { ChampImage } from "@/components/ChampImage";
 import { BoutonPartager } from "@/components/BoutonPartager";
+import { PopupCategories, type Categorie } from "@/components/PopupCategories";
 
 // Étape D.6 (pivot social) : formulaire de création d'agent, nouveau flow
 // (voir PIVOT_SOCIAL.md — nom → icône → image vitrine → description →
@@ -58,6 +59,10 @@ export default function PageCreerAgent() {
   // courte phrase affichée sous le titre au premier écran du chat
   // (équivalent du champ "Phrase d'accueil" du formulaire Streamlit).
   const [sousTitre, setSousTitre] = useState("");
+  // Catégorie obligatoire (Bourama, 2026-07-15) : bouton "Créer" bloqué
+  // tant que rien n'est choisi (voir validation dans gererSoumission).
+  const [categorie, setCategorie] = useState<Categorie | null>(null);
+  const [popupCategorieOuvert, setPopupCategorieOuvert] = useState(false);
 
   const [ton, setTon] = useState(TON_OPTIONS[0]);
   const [postureGenerale, setPostureGenerale] = useState("");
@@ -119,6 +124,10 @@ export default function PageCreerAgent() {
       setErreur("Remplis au moins la posture générale ou les limites globales.");
       return;
     }
+    if (!categorie) {
+      setErreur("Choisis une catégorie pour ton agent.");
+      return;
+    }
 
     setEnvoi(true);
     let idAgentCree: string | null = null;
@@ -141,6 +150,7 @@ export default function PageCreerAgent() {
           image_vitrine_url: imageVitrineUrl || null,
           description,
           sous_titre: sousTitre,
+          categorie_id: categorie?.id,
         }),
       });
       idAgentCree = reponse.id;
@@ -288,6 +298,32 @@ export default function PageCreerAgent() {
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
                 className={champClasse}
+              />
+            </div>
+
+            <div>
+              <label className={labelClasse}>
+                Catégorie <span className="text-dj-accent-1">*</span>
+              </label>
+              <p className="mt-1 text-xs text-dj-texte-muet">
+                Obligatoire — c&apos;est ce qui permet aux visiteurs de trouver ton
+                agent par thème.
+              </p>
+              <button
+                type="button"
+                onClick={() => setPopupCategorieOuvert(true)}
+                className={`${champClasse} flex items-center justify-between text-left`}
+              >
+                <span className={categorie ? "text-dj-texte" : "text-dj-texte-muet"}>
+                  {categorie ? categorie.nom : "Choisir une catégorie..."}
+                </span>
+                <span aria-hidden="true">▾</span>
+              </button>
+              <PopupCategories
+                ouvert={popupCategorieOuvert}
+                onFermer={() => setPopupCategorieOuvert(false)}
+                categorieActuelleId={categorie?.id}
+                onChoisir={setCategorie}
               />
             </div>
 

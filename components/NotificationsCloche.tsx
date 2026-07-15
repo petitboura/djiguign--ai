@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { appelerApi } from "@/lib/api";
+import { PleinEcran } from "@/components/PleinEcran";
 
 // Demande de Bourama (2026-07-15) : "un icone notification juste à côté
 // de mon espace et dès que tu clique, un pop up qui affiche les
@@ -15,7 +16,7 @@ import { appelerApi } from "@/lib/api";
 
 type NotificationItem = {
   id: number;
-  type: "follow" | "comment" | "rating";
+  type: "follow" | "comment" | "rating" | "categorie_manquante";
   lu: boolean;
   created_at: string | null;
   acteur_id: string;
@@ -64,6 +65,14 @@ function IconeType({ type }: { type: NotificationItem["type"] }) {
       </svg>
     );
   }
+  if (type === "categorie_manquante") {
+    return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M4 4h8l8 8-8 8-8-8V4Z" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  }
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
       <path d="M12 3.5 14.6 9l6 .9-4.3 4.2 1 6-5.3-2.8L6.7 20.1l1-6L3.4 9.9l6-.9L12 3.5Z" />
@@ -75,11 +84,14 @@ function texteNotification(n: NotificationItem) {
   const nom = n.acteur_nom || "Quelqu'un";
   if (n.type === "follow") return `${nom} te suit maintenant.`;
   if (n.type === "comment") return `${nom} a commenté ${n.agent_nom ?? "ton agent"}.`;
+  if (n.type === "categorie_manquante")
+    return `Choisis une catégorie pour ${n.agent_nom ?? "ton agent"}.`;
   return `${nom} a noté ${n.agent_nom ?? "ton agent"}.`;
 }
 
 function lienNotification(n: NotificationItem) {
   if (n.type === "follow") return `/u/${n.acteur_id}`;
+  if (n.type === "categorie_manquante" && n.agent_id) return `/dashboard/agents/${n.agent_id}/modifier`;
   if (n.agent_id) return `/agent/${n.agent_id}`;
   return null;
 }
@@ -240,45 +252,33 @@ export function NotificationsCloche() {
         </>
       )}
 
-      {pleinEcran && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-dj-fond p-5">
-          <div className="mx-auto flex w-full max-w-lg flex-1 flex-col overflow-hidden">
-            <div className="flex items-center justify-between pb-3">
-              <h2 className="font-display text-lg font-bold text-dj-texte">Notifications</h2>
-              <div className="flex items-center gap-3">
-                {nonLues > 0 && (
-                  <button
-                    type="button"
-                    onClick={toutMarquerLu}
-                    className="text-xs text-dj-accent-1 transition-colors hover:text-dj-accent-2"
-                  >
-                    Tout marquer lu
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setPleinEcran(false)}
-                  className="rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
-                >
-                  Fermer
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 overflow-y-auto rounded-2xl border border-dj-bordure">
-              {notifications?.length === 0 && (
-                <p className="px-3 py-4 text-sm text-dj-texte-muet">
-                  Aucune notification pour l&apos;instant.
-                </p>
-              )}
-              {notifications?.map((n, i) => (
-                <div key={n.id} className={i > 0 ? "border-t border-dj-bordure" : ""}>
-                  <LigneNotification n={n} onOuvrir={marquerLue} />
-                </div>
-              ))}
-            </div>
+      <PleinEcran
+        ouvert={pleinEcran}
+        onFermer={() => setPleinEcran(false)}
+        titre="Notifications"
+        actions={
+          nonLues > 0 ? (
+            <button
+              type="button"
+              onClick={toutMarquerLu}
+              className="text-xs text-dj-accent-1 transition-colors hover:text-dj-accent-2"
+            >
+              Tout marquer lu
+            </button>
+          ) : undefined
+        }
+      >
+        {notifications?.length === 0 && (
+          <p className="px-3 py-4 text-sm text-dj-texte-muet">
+            Aucune notification pour l&apos;instant.
+          </p>
+        )}
+        {notifications?.map((n, i) => (
+          <div key={n.id} className={i > 0 ? "border-t border-dj-bordure" : ""}>
+            <LigneNotification n={n} onOuvrir={marquerLue} />
           </div>
-        </div>
-      )}
+        ))}
+      </PleinEcran>
     </div>
   );
 }

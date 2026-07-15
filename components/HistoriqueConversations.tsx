@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { appelerApi } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
+import { PleinEcran } from "@/components/PleinEcran";
 
 // Ajouté le 2026-07-13 (Bourama : "conversation récente par membre de la
 // plateforme qui se conserve pour chaque agent utilisée, et qui se met
@@ -148,29 +149,13 @@ export function HistoriqueConversations() {
         Voir en plein écran ⤢
       </button>
 
-      {pleinEcran && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-dj-fond p-5">
-          <div className="mx-auto flex w-full max-w-lg flex-1 flex-col overflow-hidden">
-            <div className="flex items-center justify-between pb-3">
-              <h2 className="font-display text-lg font-bold text-dj-texte">Historique</h2>
-              <button
-                type="button"
-                onClick={() => setPleinEcran(false)}
-                className="rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
-              >
-                Fermer
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto rounded-2xl border border-dj-bordure">
-              {conversations.map((conv, i) => (
-                <div key={conv.agent_id} className={i > 0 ? "border-t border-dj-bordure" : ""}>
-                  <LigneConversation conv={conv} onOuvrir={ouvrirConversation} />
-                </div>
-              ))}
-            </div>
+      <PleinEcran ouvert={pleinEcran} onFermer={() => setPleinEcran(false)} titre="Historique">
+        {conversations.map((conv, i) => (
+          <div key={conv.agent_id} className={i > 0 ? "border-t border-dj-bordure" : ""}>
+            <LigneConversation conv={conv} onOuvrir={ouvrirConversation} />
           </div>
-        </div>
-      )}
+        ))}
+      </PleinEcran>
     </>
   );
 }

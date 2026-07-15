@@ -8,6 +8,7 @@ import { TopBar } from "@/components/TopBar";
 import { BoutonRetour } from "@/components/BoutonRetour";
 import { BoutonAccueil } from "@/components/BoutonAccueil";
 import { ChampImage } from "@/components/ChampImage";
+import { PopupCategories, chargerCategories, type Categorie } from "@/components/PopupCategories";
 
 // Étape "modifier un agent" (2026-07-12, demande de Bourama : "on ne peut
 // pas modifier ces agents créés" — gros morceau manquant depuis le début
@@ -32,6 +33,7 @@ type AgentEditable = {
   sous_titre: string;
   placeholder_saisie: string;
   actif: boolean;
+  categorie_id: string | null;
 };
 
 type DocumentIndexe = { nom_stockage: string; nom_affiche: string; url: string };
@@ -63,6 +65,8 @@ export default function PageModifierAgent() {
   // Même correctif que la page de création (2026-07-12, Bourama).
   const [pleinEcranTexteLibre, setPleinEcranTexteLibre] = useState(false);
   const [actif, setActif] = useState(true);
+  const [categorie, setCategorie] = useState<Categorie | null>(null);
+  const [popupCategorieOuvert, setPopupCategorieOuvert] = useState(false);
 
   const [documents, setDocuments] = useState<DocumentIndexe[] | null>(null);
   const [nouveauPdf, setNouveauPdf] = useState<File | null>(null);
@@ -97,6 +101,15 @@ export default function PageModifierAgent() {
         setLienNotion(r.notion_page_id || "");
         setTexteLibre(r.texte_libre || "");
         setActif(r.actif);
+        if (r.categorie_id) {
+          const idCategorie = r.categorie_id;
+          chargerCategories()
+            .then((toutes) => {
+              const trouvee = toutes.find((cat) => cat.id === idCategorie);
+              setCategorie(trouvee ?? { id: idCategorie, nom: idCategorie, mots_cles: [], parent_id: null });
+            })
+            .catch(() => setCategorie({ id: idCategorie, nom: idCategorie, mots_cles: [], parent_id: null }));
+        }
       })
       .catch((e) => setErreurChargement(e instanceof Error ? e.message : "Erreur inconnue."))
       .finally(() => setChargement(false));
@@ -130,6 +143,7 @@ export default function PageModifierAgent() {
           sous_titre: sousTitre,
           placeholder_saisie: placeholderSaisie,
           actif,
+          categorie_id: categorie?.id,
         }),
       });
       setMessage("Agent mis à jour.");
@@ -235,6 +249,29 @@ export default function PageModifierAgent() {
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
                 className={champClasse}
+              />
+            </div>
+
+            <div>
+              <label className={labelClasse}>Catégorie</label>
+              <p className="mt-1 text-xs text-dj-texte-muet">
+                Ce qui permet aux visiteurs de trouver ton agent par thème.
+              </p>
+              <button
+                type="button"
+                onClick={() => setPopupCategorieOuvert(true)}
+                className={`${champClasse} flex items-center justify-between text-left`}
+              >
+                <span className={categorie ? "text-dj-texte" : "text-dj-texte-muet"}>
+                  {categorie ? categorie.nom : "Choisir une catégorie..."}
+                </span>
+                <span aria-hidden="true">▾</span>
+              </button>
+              <PopupCategories
+                ouvert={popupCategorieOuvert}
+                onFermer={() => setPopupCategorieOuvert(false)}
+                categorieActuelleId={categorie?.id}
+                onChoisir={setCategorie}
               />
             </div>
 

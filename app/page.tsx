@@ -5,6 +5,7 @@ import { appelerApi } from "@/lib/api";
 import { TopBar } from "@/components/TopBar";
 import { AgentCard, type AgentResume } from "@/components/AgentCard";
 import { CreateurCard, type CreateurResume } from "@/components/CreateurCard";
+import { PopupCategories, type Categorie } from "@/components/PopupCategories";
 
 // Étape D.2 (pivot social) : "/" est le feed PUBLIC (voir tableau des pages
 // dans PIVOT_SOCIAL.md), pas une page qui exige une connexion — c'est un
@@ -45,6 +46,11 @@ export default function PageAccueil() {
 
   const [feed, setFeed] = useState<EtatFeed>({ statut: "chargement" });
   const [page, setPage] = useState(1);
+  // Filtre par catégorie (Bourama, 2026-07-15) : "pas tout en même temps"
+  // -- clic sur une catégorie dans le popup, filtre le feed SUR PLACE
+  // (pas de nouvelle page/route), remet la pagination à 1.
+  const [categorieFiltre, setCategorieFiltre] = useState<Categorie | null>(null);
+  const [popupCategoriesOuvert, setPopupCategoriesOuvert] = useState(false);
 
   const [feedCreateurs, setFeedCreateurs] = useState<EtatFeedCreateurs>({ statut: "chargement" });
   const [pageCreateurs, setPageCreateurs] = useState(1);
@@ -56,7 +62,8 @@ export default function PageAccueil() {
     let annule = false;
     setFeed({ statut: "chargement" });
 
-    appelerApi(`/api/feed?page=${page}&limite=${LIMITE}`)
+    const filtreCategorie = categorieFiltre ? `&categorie=${encodeURIComponent(categorieFiltre.id)}` : "";
+    appelerApi(`/api/feed?page=${page}&limite=${LIMITE}${filtreCategorie}`)
       .then((reponse) => {
         if (annule) return;
         setFeed({ statut: "ok", agents: reponse.agents, page: reponse.page, total: reponse.total });
@@ -72,7 +79,7 @@ export default function PageAccueil() {
     return () => {
       annule = true;
     };
-  }, [page]);
+  }, [page, categorieFiltre]);
 
   useEffect(() => {
     if (ongletActif !== "createurs") return;
@@ -169,7 +176,7 @@ export default function PageAccueil() {
             <ResultatsRecherche etat={recherche} />
           ) : (
             <>
-              <div className="mb-6 flex justify-center gap-2">
+              <div className="mb-6 flex flex-wrap items-center justify-center gap-2">
                 <button
                   onClick={() => setOngletActif("agents")}
                   className={`rounded-full px-4 py-1.5 text-sm transition-colors ${
@@ -190,7 +197,49 @@ export default function PageAccueil() {
                 >
                   Créateurs
                 </button>
+
+                {/* Bouton catégories : volontairement carré/à icône, PAS
+                    en pilule comme Agents/Créateurs ci-dessus (Bourama :
+                    "un bouton qui ne ressemble pas au bouton créateurs ou
+                    agent") -- pour signaler visuellement que ce n'est pas
+                    un 3e onglet mais un filtre à part. */}
+                <button
+                  onClick={() => setPopupCategoriesOuvert(true)}
+                  className="flex items-center gap-1.5 rounded-lg border border-dj-bordure px-3 py-1.5 text-sm text-dj-texte-muet transition-colors hover:border-dj-accent-1 hover:text-dj-texte"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                    <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                    <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                    <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                  </svg>
+                  {categorieFiltre ? categorieFiltre.nom : "Catégories"}
+                </button>
+
+                {categorieFiltre && (
+                  <button
+                    onClick={() => {
+                      setCategorieFiltre(null);
+                      setPage(1);
+                    }}
+                    aria-label="Retirer le filtre de catégorie"
+                    className="text-dj-texte-muet transition-colors hover:text-dj-texte"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
+
+              <PopupCategories
+                ouvert={popupCategoriesOuvert}
+                onFermer={() => setPopupCategoriesOuvert(false)}
+                categorieActuelleId={categorieFiltre?.id}
+                onChoisir={(c) => {
+                  setCategorieFiltre(c);
+                  setPage(1);
+                  setOngletActif("agents");
+                }}
+              />
 
               {ongletActif === "agents" ? (
                 <GrilleFeed etat={feed} page={page} onChangerPage={setPage} />
