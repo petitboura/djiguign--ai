@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Rendu LaTeX (voir components/chat/BulleMessage.tsx, remark-math +
+   rehype-katex) : feuille de style officielle de KaTeX, nécessaire pour
+   que les formules (fractions, racines, exposants...) s'affichent
+   correctement plutôt qu'en texte brut mal aligné. */
+@import "katex/dist/katex.min.css";
+
 /* Étape D.1 (pivot social) : repris à l'identique de
    djiguigne-frontend/app/globals.css — même thème, plateforme différente.
    Variables CSS miroir de tailwind.config.ts, utiles hors classes

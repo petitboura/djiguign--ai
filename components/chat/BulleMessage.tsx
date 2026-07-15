@@ -3,8 +3,26 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import { Copy, RotateCw, Pencil, Volume2, ThumbsUp, ThumbsDown, Check } from "lucide-react";
 import { formaterHeure } from "@/lib/formatageHeure";
+
+// Le modèle (GPT-OSS/Groq) écrit ses formules avec les délimiteurs
+// \( \) et \[ \] (convention OpenAI-like). Mais en Markdown (CommonMark,
+// ce que suit remark), un backslash suivi de ponctuation ( \( \) \[ \] )
+// est traité comme un caractère ÉCHAPPÉ : le backslash est supprimé AVANT
+// même que remark-math ne voie le texte, ce qui laisse des crochets/
+// parenthèses nus et casse tout rendu LaTeX (même bug que dans l'ancien
+// chat.py Streamlit, voir _normaliser_latex -- même cause, même remède,
+// juste porté ici côté JS). On convertit donc systématiquement vers les
+// délimiteurs $ $ / $$ $$, que remark-math sait consommer directement et
+// que CommonMark ne touche pas (le $ n'a pas de sens spécial pour lui).
+function normaliserLatex(texte: string): string {
+  return texte
+    .replace(/\\\[([\s\S]*?)\\\]/g, (_, formule) => `$$${formule}$$`)
+    .replace(/\\\(([\s\S]*?)\\\)/g, (_, formule) => `$${formule}$`);
+}
 
 export interface MessageAffiche {
   id: number | null; // id historique_conversations (null tant que non persisté, ex: pendant le streaming)
@@ -93,7 +111,18 @@ export function BulleMessage({
             qui empêchait toute transformation Markdown). Couleur des liens
             fixée sur l'accent de la charte, jamais bleu (voir 1.2). */}
         <div className="dj-markdown [&_a]:text-dj-accent-1 [&_a]:underline [&_a:hover]:text-dj-accent-2 [&_table]:my-2 [&_td]:border [&_td]:border-dj-bordure [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-dj-bordure [&_th]:px-2 [&_th]:py-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 last:[&_p]:mb-0">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+          {/* remarkGfm (tableaux/gras/liens) + remarkMath/rehypeKatex
+              (LaTeX) tournent dans LA MÊME passe de parsing -- c'est ça
+              qui évite le jeu de whack-a-mole où corriger le gras/les
+              tableaux à la main cassait le LaTeX (ou l'inverse) : un seul
+              moteur, cohérent, jamais de manipulation du texte brut à
+              part la normalisation des délimiteurs ci-dessus. */}
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm, remarkMath]}
+            rehypePlugins={[rehypeKatex]}
+          >
+            {normaliserLatex(message.content)}
+          </ReactMarkdown>
         </div>
       </div>
 
