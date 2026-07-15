@@ -174,7 +174,7 @@ export default function PageDashboard() {
                     className="fixed inset-0 z-40"
                     onClick={() => setBulleHistoriqueOuverte(false)}
                   />
-                  <div className="absolute left-1/2 top-full z-50 mt-2 w-80 -translate-x-1/2 rounded-2xl border border-dj-bordure bg-dj-surface p-3 shadow-xl">
+                  <div className="absolute left-1/2 top-full z-50 mt-2 w-80 -translate-x-1/2 overflow-hidden rounded-2xl border border-dj-bordure bg-dj-surface shadow-xl">
                     <HistoriqueConversations />
                   </div>
                 </>

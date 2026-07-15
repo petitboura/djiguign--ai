@@ -15,12 +15,18 @@ import { supabase } from "@/lib/supabase";
 // trop de place pour ce que c'est -- déplacé dans une bulle déclenchée par
 // un bouton "Historique", dans la même rangée que les autres boutons de
 // "Mon espace", voir app/dashboard/page.tsx. Ce composant ne rend donc
-// plus lui-même le déclencheur (bouton + état ouvert/fermé), seulement le
-// CONTENU de la bulle -- la page parente gère quand l'afficher, exactement
-// comme le fait déjà la bulle "Modifier un agent" juste à côté.
-// Affichage compacté en bulles (icône + nom) : le dernier message et
-// l'horodatage, utiles dans une colonne large, deviennent superflus dans
-// une bulle étroite -- retirés pour rester lisible.
+// pas lui-même le déclencheur de la bulle (bouton + état ouvert/fermé),
+// seulement le CONTENU -- la page parente gère quand l'afficher.
+//
+// Refonte du 2026-07-15 (Bourama : "pas comme ceci, non un vrai
+// historique... et pas dans des bulles mais séparée, peut-être ligne") :
+// l'affichage compact en bulles (icône + nom seul) est remplacé par une
+// vraie liste de lignes séparées par des traits, chacune avec le dernier
+// message en dessous du nom -- ce que dernier_message/dernier_message_role
+// exposaient déjà côté API, juste pas affiché jusqu'ici. Bouton plein
+// écran ajouté, géré ICI (état local) plutôt que par le parent : la bulle
+// reste courte, le plein écran affiche la liste en grand sans changer qui
+// déclenche quoi.
 //
 // Le chat lui-même reste en Streamlit (voir PIVOT_SOCIAL.md, "ce qui ne
 // change pas") : ce composant ne fait qu'afficher la LISTE des
@@ -36,8 +42,54 @@ type Conversation = {
   derniere_activite: string;
 };
 
+function tempsRelatif(iso: string) {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return "à l'instant";
+  if (minutes < 60) return `il y a ${minutes} min`;
+  const heures = Math.floor(minutes / 60);
+  if (heures < 24) return `il y a ${heures} h`;
+  const jours = Math.floor(heures / 24);
+  return `il y a ${jours} j`;
+}
+
+function LigneConversation({
+  conv,
+  onOuvrir,
+}: {
+  conv: Conversation;
+  onOuvrir: (agentId: string) => void;
+}) {
+  const prefixe = conv.dernier_message_role === "user" ? "Toi : " : "";
+  return (
+    <button
+      onClick={() => onOuvrir(conv.agent_id)}
+      className="flex w-full items-start gap-3 px-3 py-3 text-left transition-colors hover:bg-dj-surface-haute"
+    >
+      <span className="mt-0.5 text-xl leading-none">{conv.agent_icone}</span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="truncate text-sm font-bold text-dj-texte">{conv.agent_nom}</span>
+          {conv.derniere_activite && (
+            <span className="shrink-0 text-xs text-dj-texte-muet">
+              {tempsRelatif(conv.derniere_activite)}
+            </span>
+          )}
+        </div>
+        {conv.dernier_message && (
+          <p className="mt-0.5 truncate text-sm text-dj-texte-muet">
+            {prefixe}
+            {conv.dernier_message}
+          </p>
+        )}
+      </div>
+    </button>
+  );
+}
+
 export function HistoriqueConversations() {
   const [conversations, setConversations] = useState<Conversation[] | null>(null);
+  const [pleinEcran, setPleinEcran] = useState(false);
 
   useEffect(() => {
     appelerApi("/api/historique")
@@ -67,30 +119,59 @@ export function HistoriqueConversations() {
   }
 
   if (conversations === null) {
-    return <p className="px-1 text-sm text-dj-texte-muet">Chargement...</p>;
+    return <p className="px-3 py-3 text-sm text-dj-texte-muet">Chargement...</p>;
   }
 
   if (conversations.length === 0) {
     return (
-      <p className="px-1 text-sm text-dj-texte-muet">
+      <p className="px-3 py-3 text-sm text-dj-texte-muet">
         Aucune conversation pour l&apos;instant.
       </p>
     );
   }
 
   return (
-    <div className="flex max-h-72 flex-wrap gap-2 overflow-y-auto p-1">
-      {conversations.map((conv) => (
-        <button
-          key={conv.agent_id}
-          onClick={() => ouvrirConversation(conv.agent_id)}
-          title={conv.agent_nom}
-          className="flex items-center gap-1.5 rounded-full border border-dj-bordure bg-dj-surface-haute px-3 py-1.5 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
-        >
-          <span className="text-base leading-none">{conv.agent_icone}</span>
-          <span className="max-w-[9rem] truncate">{conv.agent_nom}</span>
-        </button>
-      ))}
-    </div>
+    <>
+      <div className="flex max-h-80 flex-col overflow-y-auto">
+        {conversations.map((conv, i) => (
+          <div key={conv.agent_id} className={i > 0 ? "border-t border-dj-bordure" : ""}>
+            <LigneConversation conv={conv} onOuvrir={ouvrirConversation} />
+          </div>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setPleinEcran(true)}
+        className="mt-1 block w-full border-t border-dj-bordure px-3 py-2 text-center text-xs text-dj-texte-muet transition-colors hover:text-dj-texte"
+      >
+        Voir en plein écran ⤢
+      </button>
+
+      {pleinEcran && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-dj-fond p-5">
+          <div className="mx-auto flex w-full max-w-lg flex-1 flex-col overflow-hidden">
+            <div className="flex items-center justify-between pb-3">
+              <h2 className="font-display text-lg font-bold text-dj-texte">Historique</h2>
+              <button
+                type="button"
+                onClick={() => setPleinEcran(false)}
+                className="rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
+              >
+                Fermer
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto rounded-2xl border border-dj-bordure">
+              {conversations.map((conv, i) => (
+                <div key={conv.agent_id} className={i > 0 ? "border-t border-dj-bordure" : ""}>
+                  <LigneConversation conv={conv} onOuvrir={ouvrirConversation} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
+

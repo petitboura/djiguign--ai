@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { NotificationsCloche } from "@/components/NotificationsCloche";
 
 // Nav de la PLATEFORME, volontairement différente du Header de
 // djiguigne-frontend (pas de services/about/blog/contact — voir
@@ -44,16 +45,19 @@ export function TopBar() {
             plutôt qu'un état qui clignote (connecté -> déconnecté) le
             temps que Supabase réponde. */}
         {email === undefined ? null : email ? (
-          <Link
-            href="/dashboard"
-            className={
-              dansMonEspace
-                ? "rounded-full bg-dj-gradient px-4 py-2 text-sm font-bold text-[#1A0D02]"
-                : "rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
-            }
-          >
-            Mon espace
-          </Link>
+          <div className="flex items-center gap-3">
+            <NotificationsCloche />
+            <Link
+              href="/dashboard"
+              className={
+                dansMonEspace
+                  ? "rounded-full bg-dj-gradient px-4 py-2 text-sm font-bold text-[#1A0D02]"
+                  : "rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
+              }
+            >
+              Mon espace
+            </Link>
+          </div>
         ) : (
           <Link
             href="/inscription"
