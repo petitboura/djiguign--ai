@@ -138,6 +138,21 @@ export default function PageDashboard() {
                 chemin={`/u/${profil.user_id}`}
                 titre={profil.nom_affiche || "Mon portfolio"}
               />
+              {/* Demande de Bourama (2026-07-15) : un bouton pour voir son
+                  propre profil PUBLIC, tel que les visiteurs le voient --
+                  "Mon espace" y ressemble déjà beaucoup mais reste la vue
+                  propriétaire (boutons d'édition, etc.), pas la vraie
+                  page /u/[id] que tout le monde voit. */}
+              <Link
+                href={`/u/${profil.user_id}`}
+                className="flex items-center gap-1.5 rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx="12" cy="12" r="3" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Voir mon profil public
+              </Link>
             </div>
           )}
         </div>
