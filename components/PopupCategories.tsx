@@ -18,8 +18,15 @@ export type Categorie = {
 };
 
 let categoriesEnCache: Categorie[] | null = null;
+let categoriesUtiliseesEnCache: Categorie[] | null = null;
 
-export async function chargerCategories(): Promise<Categorie[]> {
+export async function chargerCategories(seulementUtilisees = false): Promise<Categorie[]> {
+  if (seulementUtilisees) {
+    if (categoriesUtiliseesEnCache) return categoriesUtiliseesEnCache;
+    const data = (await appelerApi("/api/categories?seulement_utilisees=true")) as Categorie[];
+    categoriesUtiliseesEnCache = data;
+    return data;
+  }
   if (categoriesEnCache) return categoriesEnCache;
   const data = (await appelerApi("/api/categories")) as Categorie[];
   categoriesEnCache = data;
@@ -31,11 +38,19 @@ export function PopupCategories({
   onFermer,
   onChoisir,
   categorieActuelleId,
+  // Demande de Bourama (2026-07-15) : les catégories sans aucun agent ne
+  // doivent PAS apparaître à l'accueil (pas de destination vide à
+  // proposer aux visiteurs). Volontairement PAS activé par défaut : les
+  // formulaires de création/modification, eux, doivent montrer la liste
+  // complète -- un créateur doit pouvoir choisir une catégorie même s'il
+  // en sera le premier agent.
+  seulementUtilisees = false,
 }: {
   ouvert: boolean;
   onFermer: () => void;
   onChoisir: (categorie: Categorie) => void;
   categorieActuelleId?: string | null;
+  seulementUtilisees?: boolean;
 }) {
   const [monte, setMonte] = useState(false);
   const [categories, setCategories] = useState<Categorie[] | null>(null);
@@ -46,11 +61,11 @@ export function PopupCategories({
 
   useEffect(() => {
     if (ouvert && !categories) {
-      chargerCategories()
+      chargerCategories(seulementUtilisees)
         .then(setCategories)
         .catch(() => setCategories([]));
     }
-  }, [ouvert, categories]);
+  }, [ouvert, categories, seulementUtilisees]);
 
   useEffect(() => {
     if (!ouvert) {

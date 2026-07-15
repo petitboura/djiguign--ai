@@ -234,6 +234,7 @@ export default function PageAccueil() {
                 ouvert={popupCategoriesOuvert}
                 onFermer={() => setPopupCategoriesOuvert(false)}
                 categorieActuelleId={categorieFiltre?.id}
+                seulementUtilisees
                 onChoisir={(c) => {
                   setCategorieFiltre(c);
                   setPage(1);
