@@ -30,6 +30,7 @@ type AgentEditable = {
   image_vitrine_url: string | null;
   description: string;
   sous_titre: string;
+  placeholder_saisie: string;
   actif: boolean;
 };
 
@@ -55,6 +56,7 @@ export default function PageModifierAgent() {
   // changer") -- même correctif que le formulaire de création, distinct
   // de `description` (taille libre).
   const [sousTitre, setSousTitre] = useState("");
+  const [placeholderSaisie, setPlaceholderSaisie] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [lienNotion, setLienNotion] = useState("");
   const [texteLibre, setTexteLibre] = useState("");
@@ -90,6 +92,7 @@ export default function PageModifierAgent() {
         setImageVitrineUrl(r.image_vitrine_url || "");
         setDescription(r.description || "");
         setSousTitre(r.sous_titre || "");
+        setPlaceholderSaisie(r.placeholder_saisie || "");
         setSystemPrompt(r.system_prompt || "");
         setLienNotion(r.notion_page_id || "");
         setTexteLibre(r.texte_libre || "");
@@ -125,6 +128,7 @@ export default function PageModifierAgent() {
           image_vitrine_url: imageVitrineUrl || null,
           description,
           sous_titre: sousTitre,
+          placeholder_saisie: placeholderSaisie,
           actif,
         }),
       });
@@ -245,6 +249,20 @@ export default function PageModifierAgent() {
                 value={sousTitre}
                 onChange={(e) => setSousTitre(e.target.value)}
                 placeholder="Ex : Je t'aide à structurer ton entraînement de la semaine."
+                className={champClasse}
+              />
+            </div>
+
+            <div>
+              <label className={labelClasse}>Texte de la barre de saisie</label>
+              <p className="mt-1 text-xs text-dj-texte-muet">
+                Le texte affiché en fond dans le champ où l&apos;utilisateur écrit son
+                message (avant qu&apos;il commence à taper).
+              </p>
+              <input
+                value={placeholderSaisie}
+                onChange={(e) => setPlaceholderSaisie(e.target.value)}
+                placeholder="Pose ta question..."
                 className={champClasse}
               />
             </div>

@@ -30,10 +30,6 @@ export function TopBar() {
     return () => ecoute.subscription.unsubscribe();
   }, []);
 
-  async function seDeconnecter() {
-    await supabase.auth.signOut();
-  }
-
   return (
     <header className="sticky top-0 z-50 border-b border-dj-bordure bg-dj-fond/85 backdrop-blur">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4">
@@ -48,30 +44,23 @@ export function TopBar() {
             plutôt qu'un état qui clignote (connecté -> déconnecté) le
             temps que Supabase réponde. */}
         {email === undefined ? null : email ? (
-          <div className="flex items-center gap-3">
-            <Link
-              href="/dashboard"
-              className={
-                dansMonEspace
-                  ? "rounded-full bg-dj-gradient px-4 py-2 text-sm font-bold text-[#1A0D02]"
-                  : "rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
-              }
-            >
-              Mon espace
-            </Link>
-            <button
-              onClick={seDeconnecter}
-              className="text-sm text-dj-texte-muet transition-colors hover:text-dj-texte"
-            >
-              Se déconnecter
-            </button>
-          </div>
+          <Link
+            href="/dashboard"
+            className={
+              dansMonEspace
+                ? "rounded-full bg-dj-gradient px-4 py-2 text-sm font-bold text-[#1A0D02]"
+                : "rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
+            }
+          >
+            Mon espace
+          </Link>
         ) : (
           <Link
-            href="/connexion"
-            className="rounded-full bg-dj-gradient px-4 py-2 text-sm font-bold text-[#1A0D02] shadow-[0_2px_14px_rgba(217,99,31,0.25)] transition-transform hover:-translate-y-0.5"
+            href="/inscription"
+            className="flex items-center gap-1.5 rounded-full bg-dj-gradient px-4 py-2 text-sm font-bold text-[#1A0D02] shadow-[0_2px_14px_rgba(217,99,31,0.25)] transition-transform hover:-translate-y-0.5"
           >
-            Se connecter
+            <span aria-hidden="true">+</span>
+            Créer mon IA
           </Link>
         )}
       </div>

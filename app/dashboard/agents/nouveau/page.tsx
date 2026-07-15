@@ -8,6 +8,7 @@ import { TopBar } from "@/components/TopBar";
 import { BoutonRetour } from "@/components/BoutonRetour";
 import { BoutonAccueil } from "@/components/BoutonAccueil";
 import { ChampImage } from "@/components/ChampImage";
+import { BoutonPartager } from "@/components/BoutonPartager";
 
 // Étape D.6 (pivot social) : formulaire de création d'agent, nouveau flow
 // (voir PIVOT_SOCIAL.md — nom → icône → image vitrine → description →
@@ -45,6 +46,11 @@ export default function PageCreerAgent() {
 
   const [nom, setNom] = useState("");
   const [iconePage, setIconePage] = useState("🤖");
+  // Point 5 (2026-07-14, Bourama : "il n'y a pas de section pour modifier
+  // le texte qui s'affiche dans la barre de saisie") -- déjà lu par
+  // faces/vues/chat.py (ui_config.placeholder_saisie), il manquait juste
+  // ce champ côté formulaire Next.js.
+  const [placeholderSaisie, setPlaceholderSaisie] = useState("");
   const [imageVitrineUrl, setImageVitrineUrl] = useState("");
   const [description, setDescription] = useState("");
   // Ajouté le 2026-07-12 (Bourama : "tu as mélangé deux choses, la
@@ -84,10 +90,6 @@ export default function PageCreerAgent() {
     null
   );
   const [erreur, setErreur] = useState<string | null>(null);
-  // Confirmation visuelle du bouton "Copier" (2026-07-12, remonté par
-  // Bourama : "tu copie et tu reste la sans rien savoir" -- aucun retour
-  // visuel après le clic, impossible de savoir si le clipboard a marché).
-  const [lienCopie, setLienCopie] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -135,7 +137,7 @@ export default function PageCreerAgent() {
           description_connaissance: descriptionConnaissance,
           lien_notion: lienNotion || null,
           texte_libre: texteLibre,
-          ui_config: { icone_page: iconePage || "🤖" },
+          ui_config: { icone_page: iconePage || "🤖", placeholder_saisie: placeholderSaisie || "Pose ta question..." },
           image_vitrine_url: imageVitrineUrl || null,
           description,
           sous_titre: sousTitre,
@@ -206,20 +208,14 @@ export default function PageCreerAgent() {
               className="flex-1 truncate bg-transparent text-sm text-dj-texte outline-none"
               onFocus={(e) => e.target.select()}
             />
-            <button
-              type="button"
-              onClick={() => {
-                navigator.clipboard.writeText(lienPublic);
-                setLienCopie(true);
-                setTimeout(() => setLienCopie(false), 2000);
-              }}
-              className="shrink-0 rounded-full border border-dj-bordure px-3 py-1 text-xs text-dj-texte-muet transition-colors hover:border-dj-bordure-forte"
-            >
-              {lienCopie ? "Copié !" : "Copier"}
-            </button>
           </div>
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <BoutonPartager
+              chemin={`/agent/${agentCree.id}`}
+              titre={agentCree.nom}
+              libelle="Partager avec ses amis"
+            />
             <button
               type="button"
               onClick={() => router.push(`/agent/${agentCree.id}`)}
@@ -306,6 +302,20 @@ export default function PageCreerAgent() {
                 value={sousTitre}
                 onChange={(e) => setSousTitre(e.target.value)}
                 placeholder="Ex : Je t'aide à structurer ton entraînement de la semaine."
+                className={champClasse}
+              />
+            </div>
+
+            <div>
+              <label className={labelClasse}>Texte de la barre de saisie</label>
+              <p className="mt-1 text-xs text-dj-texte-muet">
+                Le texte affiché en fond dans le champ où l&apos;utilisateur écrit son
+                message (avant qu&apos;il commence à taper).
+              </p>
+              <input
+                value={placeholderSaisie}
+                onChange={(e) => setPlaceholderSaisie(e.target.value)}
+                placeholder="Pose ta question..."
                 className={champClasse}
               />
             </div>

@@ -279,6 +279,20 @@ export default function PageDashboard() {
               ))}
             </div>
           )}
+
+          {/* Demande de Bourama (2026-07-15) : "Se déconnecter" retiré de
+              la TopBar, déplacé ici -- tout en bas de la liste des
+              agents -- en lien discret plutôt qu'un bouton, subtil. */}
+          <button
+            type="button"
+            onClick={async () => {
+              await supabase.auth.signOut();
+              router.push("/");
+            }}
+            className="mt-4 self-center text-sm text-dj-texte-muet transition-colors hover:text-dj-texte"
+          >
+            Se déconnecter
+          </button>
         </section>
       </main>
     </div>
