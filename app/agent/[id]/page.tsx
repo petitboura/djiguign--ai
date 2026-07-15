@@ -38,7 +38,7 @@ export async function generateMetadata({
   params: { id: string };
 }): Promise<Metadata> {
   const agent = await chargerAgent(params.id);
-  if (!agent) return { title: "Agent introuvable — Djiguignè AI" };
+  if (!agent) return { title: "IA introuvable — Djiguignè AI" };
 
   return {
     title: `${agent.nom} — Djiguignè AI`,

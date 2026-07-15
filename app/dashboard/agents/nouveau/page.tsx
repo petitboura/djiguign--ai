@@ -117,7 +117,7 @@ export default function PageCreerAgent() {
     setErreur(null);
 
     if (!nom.trim()) {
-      setErreur("Le nom de l'agent est obligatoire.");
+      setErreur("Le nom de l'IA est obligatoire.");
       return;
     }
     if (!postureGenerale.trim() && !limitesGlobales.trim()) {
@@ -170,9 +170,9 @@ export default function PageCreerAgent() {
         await appelerApiFichier(`/api/agents/${idAgentCree}/documents`, fichierPdf);
       } catch (e) {
         window.alert(
-          `L'agent est créé, mais le PDF n'a pas pu être indexé : ${
+          `L'IA est créée, mais le PDF n'a pas pu être indexé : ${
             e instanceof Error ? e.message : "erreur inconnue"
-          }. Tu pourras réessayer depuis "Mes agents".`
+          }. Tu pourras réessayer depuis "Mes IA".`
         );
       }
     }
@@ -255,14 +255,14 @@ export default function PageCreerAgent() {
           <BoutonRetour />
           <BoutonAccueil />
         </div>
-        <h1 className="font-display text-2xl font-bold text-dj-texte">Créer un agent</h1>
+        <h1 className="font-display text-2xl font-bold text-dj-texte">Créer une IA</h1>
 
         <form onSubmit={gererSoumission} className="mt-6 flex flex-col gap-8">
           <section className="flex flex-col gap-4 rounded-2xl border border-dj-bordure bg-dj-surface p-6">
             <h2 className="font-display text-base font-bold text-dj-texte">Vitrine publique</h2>
 
             <div>
-              <label className={labelClasse}>Nom de l&apos;agent</label>
+              <label className={labelClasse}>Nom de l&apos;IA</label>
               <input
                 value={nom}
                 onChange={(e) => setNom(e.target.value)}
@@ -528,7 +528,7 @@ export default function PageCreerAgent() {
             disabled={envoi}
             className="self-start rounded-full bg-dj-gradient px-6 py-3 text-sm font-bold text-[#1A0D02] transition-transform hover:-translate-y-0.5 disabled:opacity-50"
           >
-            {envoi ? "Création…" : "Créer l'agent"}
+            {envoi ? "Création…" : "Créer l'IA"}
           </button>
         </form>
       </main>

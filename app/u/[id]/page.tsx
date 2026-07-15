@@ -92,7 +92,7 @@ export default async function PagePortfolio({ params }: { params: { id: string }
           </h2>
 
           {profil.agents.length === 0 ? (
-            <p className="text-sm text-dj-texte-muet">Aucun agent publié pour l'instant.</p>
+            <p className="text-sm text-dj-texte-muet">Aucune IA publiée pour l'instant.</p>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
               {profil.agents.map((agent) => (

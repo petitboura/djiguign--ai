@@ -32,7 +32,7 @@ export function NoteAgent({ agentId }: { agentId: string }) {
 
   async function noter(note: number) {
     if (!connecte) {
-      setErreur("Connecte-toi pour noter cet agent.");
+      setErreur("Connecte-toi pour noter cette IA.");
       return;
     }
     setEnvoi(true);

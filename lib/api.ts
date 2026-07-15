@@ -49,7 +49,66 @@ export async function appelerApi(chemin: string, options: RequestInit = {}) {
 }
 
 /**
- * Variante de appelerApi pour l'upload de fichiers (multipart/form-data).
+ * Variante streaming (Server-Sent Events) pour /api/chat -- voir
+ * api/chat.py côté backend. Contrairement à appelerApi, ne parse pas
+ * directement un JSON unique : appelle `surEvenement` pour chaque
+ * événement reçu (mêmes types que core/main.py:chat(), voir sa
+ * docstring : "statut", "statut_termine", "reponse", "confirmation_requise",
+ * "meta"), au fur et à mesure du streaming.
+ */
+export async function appelerApiStream(
+  chemin: string,
+  corps: unknown,
+  surEvenement: (evenement: any) => void
+) {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const entetes = new Headers();
+  entetes.set("Content-Type", "application/json");
+  if (session?.access_token) {
+    entetes.set("Authorization", `Bearer ${session.access_token}`);
+  }
+
+  const reponse = await fetch(`${API_URL}${chemin}`, {
+    method: "POST",
+    headers: entetes,
+    body: JSON.stringify(corps),
+  });
+
+  if (!reponse.ok || !reponse.body) {
+    const detail = await reponse.text().catch(() => "");
+    throw new Error(`Erreur API ${reponse.status} sur ${chemin} : ${detail}`);
+  }
+
+  const lecteur = reponse.body.getReader();
+  const decodeur = new TextDecoder();
+  let tampon = "";
+
+  while (true) {
+    const { done, value } = await lecteur.read();
+    if (done) break;
+    tampon += decodeur.decode(value, { stream: true });
+
+    // Un événement SSE = une ligne "data: {...}", séparée par \n\n.
+    const morceaux = tampon.split("\n\n");
+    tampon = morceaux.pop() ?? "";
+
+    for (const morceau of morceaux) {
+      const ligne = morceau.trim();
+      if (!ligne.startsWith("data:")) continue;
+      const contenu = ligne.slice("data:".length).trim();
+      if (contenu === "[DONE]") return;
+      try {
+        surEvenement(JSON.parse(contenu));
+      } catch {
+        // Ligne mal formée : on l'ignore plutôt que de casser tout le flux.
+      }
+    }
+  }
+}
+/**
  * Ajoutée pour le fix du 2026-07-12 (champs URL image remplacés par un
  * vrai upload, voir components/ChampImage.tsx). Pas de
  * Content-Type manuel : le navigateur doit le fixer lui-même avec le

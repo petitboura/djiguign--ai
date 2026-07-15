@@ -220,7 +220,7 @@ export function AgentCard({
               basculerActif();
             }}
             disabled={envoiActif}
-            title={estActif ? "Agent public : clique pour rendre privé" : "Agent privé : clique pour rendre public"}
+            title={estActif ? "IA publique : clique pour rendre privée" : "IA privée : clique pour rendre publique"}
             className={
               estActif
                 ? "absolute right-2 top-2 z-10 rounded-full bg-dj-gradient px-3 py-1 text-xs font-bold text-[#1A0D02] disabled:opacity-50"
@@ -419,7 +419,7 @@ export function AgentCard({
               value={brouillonDescription}
               onChange={(e) => setBrouillonDescription(e.target.value)}
               rows={6}
-              placeholder="En une ou deux phrases, ce que fait cet agent..."
+              placeholder="En une ou deux phrases, ce que fait cette IA..."
               className="w-full rounded-lg border border-dj-bordure bg-dj-surface-haute px-3 py-2 text-sm text-dj-texte outline-none focus:border-dj-accent-1"
             />
             {erreur && <p className="mt-2 text-xs text-[#F87171]">{erreur}</p>}

@@ -83,10 +83,10 @@ function IconeType({ type }: { type: NotificationItem["type"] }) {
 function texteNotification(n: NotificationItem) {
   const nom = n.acteur_nom || "Quelqu'un";
   if (n.type === "follow") return `${nom} te suit maintenant.`;
-  if (n.type === "comment") return `${nom} a commenté ${n.agent_nom ?? "ton agent"}.`;
+  if (n.type === "comment") return `${nom} a commenté ${n.agent_nom ?? "ton IA"}.`;
   if (n.type === "categorie_manquante")
-    return `Choisis une catégorie pour ${n.agent_nom ?? "ton agent"}.`;
-  return `${nom} a noté ${n.agent_nom ?? "ton agent"}.`;
+    return `Choisis une catégorie pour ${n.agent_nom ?? "ton IA"}.`;
+  return `${nom} a noté ${n.agent_nom ?? "ton IA"}.`;
 }
 
 function lienNotification(n: NotificationItem) {

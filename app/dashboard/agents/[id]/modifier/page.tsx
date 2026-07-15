@@ -146,7 +146,7 @@ export default function PageModifierAgent() {
           categorie_id: categorie?.id,
         }),
       });
-      setMessage("Agent mis à jour.");
+      setMessage("IA mise à jour.");
     } catch (e) {
       setErreur(e instanceof Error ? e.message : "Erreur inconnue.");
     } finally {
@@ -218,7 +218,7 @@ export default function PageModifierAgent() {
             <h2 className="font-display text-base font-bold text-dj-texte">Vitrine publique</h2>
 
             <div>
-              <label className={labelClasse}>Nom de l&apos;agent</label>
+              <label className={labelClasse}>Nom de l&apos;IA</label>
               <input value={nom} onChange={(e) => setNom(e.target.value)} className={champClasse} />
             </div>
 
@@ -419,7 +419,7 @@ export default function PageModifierAgent() {
 
           {documents === null && <p className="text-sm text-dj-texte-muet">Chargement...</p>}
           {documents?.length === 0 && (
-            <p className="text-sm text-dj-texte-muet">Aucun PDF indexé pour cet agent.</p>
+            <p className="text-sm text-dj-texte-muet">Aucun PDF indexé pour cette IA.</p>
           )}
           {documents && documents.length > 0 && (
             <div className="flex flex-col gap-2">

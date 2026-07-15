@@ -23,7 +23,7 @@ import { BoutonAccueil } from "@/components/BoutonAccueil";
 //   BoutonFollow masquait aussi le compteur pour son propre profil,
 //   pas seulement le bouton)
 //
-// 4 boutons ajoutés ("Modifier le profil", "Modifier un agent",
+// 4 boutons ajoutés ("Modifier le profil", "Modifier une IA",
 // "Publier un article", "Amis et Analytique") : AUCUN n'est branché
 // pour l'instant, sur demande explicite de Bourama ("pour l'instant met
 // les boutons, et un message qui s'affiche avant branchement, en gros ce
@@ -200,7 +200,7 @@ export default function PageDashboard() {
         <section className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-lg font-bold text-dj-texte">
-              Agents créés ({profil?.agents.length ?? 0})
+              IA créées ({profil?.agents.length ?? 0})
             </h2>
             <div className="flex items-center gap-2">
               <div className="relative">
@@ -226,7 +226,7 @@ export default function PageDashboard() {
                   >
                     <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
                   </svg>
-                  Modifier un agent
+                  Modifier une IA
                 </button>
 
                 {bulleAgentsOuverte && (
@@ -241,7 +241,7 @@ export default function PageDashboard() {
                     <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-dj-bordure bg-dj-surface p-2 shadow-xl">
                       {!profil || profil.agents.length === 0 ? (
                         <p className="px-3 py-2 text-sm text-dj-texte-muet">
-                          Aucun agent créé pour l&apos;instant.
+                          Aucune IA créée pour l&apos;instant.
                         </p>
                       ) : (
                         <div className="flex max-h-64 flex-col gap-1 overflow-y-auto">
@@ -269,14 +269,14 @@ export default function PageDashboard() {
                 href="/dashboard/agents/nouveau"
                 className="rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
               >
-                + Créer un agent
+                + Créer une IA
               </Link>
             </div>
           </div>
 
           {profil === null && <p className="text-sm text-dj-texte-muet">Chargement...</p>}
           {profil?.agents.length === 0 && (
-            <p className="text-sm text-dj-texte-muet">Aucun agent créé pour l'instant.</p>
+            <p className="text-sm text-dj-texte-muet">Aucune IA créée pour l'instant.</p>
           )}
           {profil && profil.agents.length > 0 && (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">

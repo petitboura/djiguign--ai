@@ -165,7 +165,7 @@ export default function PageAccueil() {
               type="search"
               value={requete}
               onChange={(e) => setRequete(e.target.value)}
-              placeholder="Chercher un agent ou un créateur…"
+              placeholder="Chercher une IA ou un créateur…"
               className="w-full rounded-full border border-dj-bordure bg-dj-surface px-5 py-3 text-dj-texte placeholder:text-dj-texte-muet outline-none focus:border-dj-accent-1"
             />
           </div>
@@ -185,7 +185,7 @@ export default function PageAccueil() {
                       : "border border-dj-bordure text-dj-texte-muet hover:border-dj-bordure-forte"
                   }`}
                 >
-                  Agents
+                  IA
                 </button>
                 <button
                   onClick={() => setOngletActif("createurs")}
@@ -269,7 +269,7 @@ function GrilleFeed({
   onChangerPage: (p: number) => void;
 }) {
   if (etat.statut === "chargement") {
-    return <EtatVide message="Chargement des agents…" />;
+    return <EtatVide message="Chargement des IA…" />;
   }
 
   if (etat.statut === "erreur") {
@@ -282,7 +282,7 @@ function GrilleFeed({
   }
 
   if (etat.agents.length === 0) {
-    return <EtatVide message="Aucun agent publié pour l'instant." />;
+    return <EtatVide message="Aucune IA publiée pour l'instant." />;
   }
 
   const dernierePage = Math.ceil(etat.total / LIMITE);
