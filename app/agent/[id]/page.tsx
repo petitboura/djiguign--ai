@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { appelerApiPublicOuNull } from "@/lib/api-serveur";
 import { TopBar } from "@/components/TopBar";
@@ -10,6 +9,7 @@ import { BoutonUtiliser } from "@/components/BoutonUtiliser";
 import { NoteAgent } from "@/components/NoteAgent";
 import { CommentairesAgent } from "@/components/CommentairesAgent";
 import { BoutonPartager } from "@/components/BoutonPartager";
+import { BoutonProfilCreateur } from "@/components/BoutonProfilCreateur";
 
 // Étape D.3 (pivot social) : page agent publique (voir tableau des pages
 // dans PIVOT_SOCIAL.md — /agent/[id], "id" sert de slug, voir
@@ -91,17 +91,11 @@ export default async function PageAgent({ params }: { params: { id: string } }) 
 
             <div className="flex items-center gap-3">
               <BoutonUtiliser agentId={agent.id} />
+              <BoutonProfilCreateur ownerId={agent.owner_id} />
               <BoutonPartager chemin={`/agent/${agent.id}`} titre={agent.nom} />
             </div>
 
             <NoteAgent agentId={agent.id} />
-
-            <Link
-              href={`/u/${agent.owner_id}`}
-              className="text-sm text-dj-accent-1 transition-colors hover:text-dj-accent-2"
-            >
-              Voir le profil du créateur →
-            </Link>
           </div>
         </div>
 
