@@ -1,21 +1,26 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { appelerApiPublicOuNull } from "@/lib/api-serveur";
-import { BoutonRetour } from "@/components/BoutonRetour";
-import { BoutonAccueil } from "@/components/BoutonAccueil";
-import { BoutonPartager } from "@/components/BoutonPartager";
-import { BoutonInstaller } from "@/components/BoutonInstaller";
-import { ChatIA } from "@/components/chat/ChatIA";
+import { ChatAgentClient } from "@/components/chat/ChatAgentClient";
 
 // Remplace chat.py (Streamlit sur Railway) -- voir MIGRATION_CHAT_VERS_NEXTJS.md,
 // section 0 et phase 2. Tout reste dans la même app Next.js/Vercel : plus de
 // saut entre domaines, donc plus du tout le bug remonté par Bourama
 // (plein écran / retour qui ouvraient une "nouvelle page" à chaque fois).
+//
+// Header du haut retiré le 2026-07-16 (Bourama : reproduire le visuel du
+// chat Streamlit "comme si je n'avais pas quitté Streamlit") : chat.py
+// n'a jamais eu de bandeau -- Retour/Partager/Historique/Avis vivent tous
+// dans la sidebar (voir SidebarChat.tsx), pas dans un header séparé.
+// Le bouton "Télécharger" (BoutonInstaller, ajouté juste avant dans le
+// header) suit le même chemin : déplacé dans la sidebar plutôt que perdu.
 
 type AgentDetailPublic = {
   id: string;
   nom: string;
   icone_page: string;
+  titre_accueil: string;
+  sous_titre_accueil: string;
 };
 
 async function chargerAgent(id: string): Promise<AgentDetailPublic | null> {
@@ -45,26 +50,5 @@ export default async function PageChatAgent({ params }: { params: { id: string }
   const agent = await chargerAgent(params.id);
   if (!agent) notFound();
 
-  return (
-    <div className="flex h-screen flex-col">
-      <header className="flex items-center justify-between border-b border-dj-bordure px-4 py-3">
-        <div className="flex items-center gap-2">
-          <BoutonRetour />
-          <BoutonAccueil />
-          <span className="ml-1 flex items-center gap-2 text-dj-texte">
-            <span className="text-xl leading-none">{agent.icone_page}</span>
-            <span className="font-display font-semibold">{agent.nom}</span>
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <BoutonInstaller />
-          <BoutonPartager chemin={`/agent/${agent.id}/chat`} titre={agent.nom} />
-        </div>
-      </header>
-
-      <div className="flex-1 overflow-hidden">
-        <ChatIA agentId={agent.id} nomAgent={agent.nom} />
-      </div>
-    </div>
-  );
+  return <ChatAgentClient agent={agent} />;
 }

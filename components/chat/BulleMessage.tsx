@@ -110,7 +110,7 @@ export function BulleMessage({
             règle définitivement le bug hérité de Streamlit (bloc HTML brut
             qui empêchait toute transformation Markdown). Couleur des liens
             fixée sur l'accent de la charte, jamais bleu (voir 1.2). */}
-        <div className="dj-markdown [&_a]:text-dj-accent-1 [&_a]:underline [&_a:hover]:text-dj-accent-2 [&_table]:my-2 [&_td]:border [&_td]:border-dj-bordure [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-dj-bordure [&_th]:px-2 [&_th]:py-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 last:[&_p]:mb-0">
+        <div className="dj-markdown [&_a]:text-dj-accent-1 [&_a]:underline [&_a:hover]:text-dj-accent-2 [&_table]:my-2 [&_td]:border [&_td]:border-dj-bordure [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-dj-bordure [&_th]:px-2 [&_th]:py-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 last:[&_p]:mb-0 [&_h1]:font-display [&_h1]:font-bold [&_h1]:tracking-[-0.01em] [&_h1]:text-dj-texte [&_h1]:text-xl [&_h1]:mb-2 [&_h1]:mt-3 [&_h2]:font-display [&_h2]:font-bold [&_h2]:tracking-[-0.01em] [&_h2]:text-dj-texte [&_h2]:text-lg [&_h2]:mb-2 [&_h2]:mt-3 [&_h3]:font-display [&_h3]:font-bold [&_h3]:tracking-[-0.01em] [&_h3]:text-dj-texte [&_h3]:text-base [&_h3]:mb-1.5 [&_h3]:mt-2">
           {/* remarkGfm (tableaux/gras/liens) + remarkMath/rehypeKatex
               (LaTeX) tournent dans LA MÊME passe de parsing -- c'est ça
               qui évite le jeu de whack-a-mole où corriger le gras/les

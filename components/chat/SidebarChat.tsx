@@ -1,0 +1,195 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ChevronsLeft, ChevronsRight, ArrowLeft, MessageSquarePlus, History, Star, Share2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { appelerApi } from "@/lib/api";
+import { NoteAgent } from "@/components/NoteAgent";
+import { CommentairesAgent } from "@/components/CommentairesAgent";
+import { BoutonInstaller } from "@/components/BoutonInstaller";
+
+// Reproduit la sidebar de faces/vues/chat.py (Streamlit) dans le chat
+// Next.js -- demande de Bourama (2026-07-16) : "comme si j'avais pas
+// quitté Streamlit en termes de visuel". Cinq éléments, dans le même
+// ordre, avec le même style visuel que le thème Streamlit
+// (theme_djiguigne.py) :
+//   1. Retour à l'agent -- dégradé orange (comme le .stButton standard)
+//   2. Nouvelle conversation -- SANS dégradé, seulement si le fil courant
+//      a déjà des messages (voir chat.py : "n'a de sens que s'il y a
+//      quelque chose à quitter")
+//   3. Historique -- volet repliable, fils de discussion listés à plat
+//      (pas de style bouton, séparateur presque invisible), fermé par
+//      défaut, se referme après sélection
+//   4. Avis sur cet agent -- volet repliable, réutilise les composants
+//      existants NoteAgent + CommentairesAgent (déjà utilisés sur la page
+//      agent, mêmes endpoints)
+//   5. Partager -- dégradé orange plein largeur (voir chat.py, bouton
+//      HTML/JS custom ; ici on réutilise juste la logique de partage déjà
+//      dans components/BoutonPartager.tsx, avec un style différent, sans
+//      toucher à ce composant partagé utilisé ailleurs)
+//
+// N'affecte jamais BarreDeSaisie.tsx ni l'espacement des bulles de
+// message (BulleMessage.tsx) -- consigne explicite de Bourama.
+
+type FilConversation = {
+  conversation_id: string | null;
+  titre: string;
+  derniere_activite: string;
+};
+
+export function SidebarChat({
+  agentId,
+  aDesMessages,
+  conversationActiveId,
+  onNouvelleConversation,
+  onSelectionnerConversation,
+}: {
+  agentId: string;
+  aDesMessages: boolean;
+  conversationActiveId: string | null;
+  onNouvelleConversation: () => void;
+  onSelectionnerConversation: (fil: FilConversation) => void;
+}) {
+  const [ouverte, setOuverte] = useState(true);
+  const [connecte, setConnecte] = useState<boolean | undefined>(undefined);
+  const [fils, setFils] = useState<FilConversation[] | null>(null);
+  const [historiqueDeplie, setHistoriqueDeplie] = useState(false);
+  const [avisDeplie, setAvisDeplie] = useState(false);
+  const [copie, setCopie] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setConnecte(!!session);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!connecte) return;
+    appelerApi(`/api/historique/${agentId}/conversations`)
+      .then((r: FilConversation[]) => setFils(r))
+      .catch(() => setFils([]));
+  }, [connecte, agentId, aDesMessages]);
+
+  async function partager() {
+    const url = `${window.location.origin}/agent/${agentId}`;
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({ url });
+      } catch {
+        // Annulé par la personne -- flux normal du Web Share API.
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopie(true);
+      setTimeout(() => setCopie(false), 2000);
+    } catch {
+      window.prompt("Copie ce lien :", url);
+    }
+  }
+
+  function choisirFil(fil: FilConversation) {
+    onSelectionnerConversation(fil);
+    setHistoriqueDeplie(false);
+  }
+
+  return (
+    <>
+      {/* Bouton replier/déplier, fixé en haut à gauche -- même position
+          que le contrôle natif de la sidebar Streamlit. */}
+      <button
+        onClick={() => setOuverte((v) => !v)}
+        aria-label={ouverte ? "Replier le panneau" : "Déplier le panneau"}
+        className="fixed left-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-md bg-black/35 text-white hover:bg-black/50"
+      >
+        {ouverte ? <ChevronsLeft size={16} /> : <ChevronsRight size={16} />}
+      </button>
+
+      {ouverte && (
+        <aside className="flex w-72 shrink-0 flex-col gap-3 overflow-y-auto border-r border-dj-bordure bg-dj-fond px-3 pb-4 pt-14">
+          <Link
+            href={`/agent/${agentId}`}
+            className="flex items-center justify-center gap-2 rounded-full bg-dj-gradient px-4 py-2.5 text-sm font-bold text-[#1A0D02] shadow-[0_2px_14px_rgba(217,99,31,0.25)] transition-transform hover:-translate-y-0.5"
+          >
+            <ArrowLeft size={16} />
+            Retour à l&apos;agent
+          </Link>
+
+          {connecte && aDesMessages && (
+            <button
+              onClick={onNouvelleConversation}
+              className="flex items-center justify-center gap-2 rounded-[10px] border border-dj-bordure bg-dj-surface-haute px-4 py-2.5 text-sm text-dj-texte transition-colors hover:bg-dj-surface"
+            >
+              <MessageSquarePlus size={16} />
+              Nouvelle conversation
+            </button>
+          )}
+
+          {connecte && fils && fils.length > 0 && (
+            <div className="rounded-xl border border-dj-bordure">
+              <button
+                onClick={() => setHistoriqueDeplie((v) => !v)}
+                className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-dj-texte"
+              >
+                <History size={16} />
+                Historique
+              </button>
+              {historiqueDeplie && (
+                <div className="flex flex-col px-1 pb-1">
+                  {fils.map((fil) => {
+                    const estActive = fil.conversation_id === conversationActiveId;
+                    return (
+                      <button
+                        key={fil.conversation_id ?? "legacy"}
+                        onClick={() => !estActive && choisirFil(fil)}
+                        disabled={estActive}
+                        className={`border-b border-white/[0.06] px-2 py-2 text-left text-sm last:border-b-0 ${
+                          estActive ? "text-dj-accent-1" : "text-dj-texte hover:text-dj-accent-1"
+                        }`}
+                      >
+                        {estActive ? "● " : ""}
+                        {fil.titre}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="rounded-xl border border-dj-bordure">
+            <button
+              onClick={() => setAvisDeplie((v) => !v)}
+              className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-dj-texte"
+            >
+              <Star size={16} />
+              Avis sur cet agent
+            </button>
+            {avisDeplie && (
+              <div className="flex flex-col gap-4 px-3 pb-3">
+                <NoteAgent agentId={agentId} />
+                <CommentairesAgent agentId={agentId} />
+              </div>
+            )}
+          </div>
+
+          <div className="mt-auto flex justify-center">
+            <BoutonInstaller />
+          </div>
+
+          <button
+            onClick={partager}
+            className="flex items-center justify-center gap-2 rounded-[10px] bg-dj-gradient px-4 py-2.5 text-sm font-bold text-[#1A0D02] shadow-[0_2px_14px_rgba(217,99,31,0.25)] transition-transform hover:-translate-y-0.5"
+          >
+            <Share2 size={16} />
+            {copie ? "Copié !" : "Partager"}
+          </button>
+        </aside>
+      )}
+    </>
+  );
+}
+
+export type { FilConversation };
