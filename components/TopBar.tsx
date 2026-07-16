@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { NotificationsCloche } from "@/components/NotificationsCloche";
+import { BoutonInstaller } from "@/components/BoutonInstaller";
 
 // Nav de la PLATEFORME, volontairement différente du Header de
 // djiguigne-frontend (pas de services/about/blog/contact — voir
@@ -46,6 +47,7 @@ export function TopBar() {
             temps que Supabase réponde. */}
         {email === undefined ? null : email ? (
           <div className="flex items-center gap-3">
+            <BoutonInstaller />
             <NotificationsCloche />
             <Link
               href="/dashboard"
@@ -59,13 +61,16 @@ export function TopBar() {
             </Link>
           </div>
         ) : (
-          <Link
-            href="/inscription"
-            className="flex items-center gap-1.5 rounded-full bg-dj-gradient px-4 py-2 text-sm font-bold text-[#1A0D02] shadow-[0_2px_14px_rgba(217,99,31,0.25)] transition-transform hover:-translate-y-0.5"
-          >
-            <span aria-hidden="true">+</span>
-            Créer mon IA
-          </Link>
+          <div className="flex items-center gap-3">
+            <BoutonInstaller />
+            <Link
+              href="/inscription"
+              className="flex items-center gap-1.5 rounded-full bg-dj-gradient px-4 py-2 text-sm font-bold text-[#1A0D02] shadow-[0_2px_14px_rgba(217,99,31,0.25)] transition-transform hover:-translate-y-0.5"
+            >
+              <span aria-hidden="true">+</span>
+              Créer mon IA
+            </Link>
+          </div>
         )}
       </div>
     </header>
