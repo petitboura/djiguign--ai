@@ -464,7 +464,127 @@ export default function PageModifierAgent() {
             </button>
           </div>
         </section>
+
+        <SectionMiseAJour agentId={agentId} />
       </main>
     </div>
+  );
+}
+
+function SectionMiseAJour({ agentId }: { agentId: string }) {
+  // Champ "Mise à jour" (demande Bourama, 2026-07-15) : en dessous dans
+  // "Modifier agent", pour dire ce qui vient d'être changé -- titre +
+  // texte + bouton plein écran, même pattern exact que "Connaissance
+  // libre" plus haut sur cette page (pleinEcranTexteLibre). Publier
+  // ENVOIE tout de suite (POST /api/agents/{id}/updates) et vide les
+  // champs pour la prochaine fois -- ce n'est pas un brouillon qui se
+  // sauvegarde avec le reste du formulaire "Enregistrer".
+  const champClasseLocal =
+    "mt-1 w-full rounded-xl border border-dj-bordure bg-dj-surface-haute px-3 py-2 text-sm text-dj-texte placeholder:text-dj-inactif focus:border-dj-bordure-forte focus:outline-none";
+  const labelClasseLocal = "text-xs font-medium text-dj-texte-muet";
+
+  const [titre, setTitre] = useState("");
+  const [contenu, setContenu] = useState("");
+  const [pleinEcran, setPleinEcran] = useState(false);
+  const [envoi, setEnvoi] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [erreur, setErreur] = useState<string | null>(null);
+
+  async function publier(e: React.FormEvent) {
+    e.preventDefault();
+    if (!titre.trim() || !contenu.trim()) return;
+
+    setEnvoi(true);
+    setMessage(null);
+    setErreur(null);
+    try {
+      await appelerApi(`/api/agents/${agentId}/updates`, {
+        method: "POST",
+        body: JSON.stringify({ titre, contenu }),
+      });
+      setTitre("");
+      setContenu("");
+      setPleinEcran(false);
+      setMessage("Mise à jour publiée — les personnes ayant déjà utilisé cet agent sont notifiées.");
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : "Erreur inconnue.");
+    } finally {
+      setEnvoi(false);
+    }
+  }
+
+  return (
+    <section className="mt-10 flex flex-col gap-4 rounded-2xl border border-dj-bordure bg-dj-surface p-6">
+      <h2 className="font-display text-lg font-bold text-dj-texte">Mise à jour</h2>
+      <p className="text-xs text-dj-texte-muet">
+        Dis ce que tu viens de modifier sur cet agent — affiché avec la date sur sa page
+        publique, avec notification aux personnes qui l&apos;ont déjà utilisé.
+      </p>
+
+      <form onSubmit={publier} className="flex flex-col gap-4">
+        <div>
+          <label className={labelClasseLocal}>Titre</label>
+          <input
+            value={titre}
+            onChange={(e) => setTitre(e.target.value)}
+            placeholder="Ex : Nouvelle base de connaissance ajoutée"
+            className={champClasseLocal}
+          />
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between">
+            <label className={labelClasseLocal}>Détail</label>
+            <button
+              type="button"
+              onClick={() => setPleinEcran(true)}
+              className="text-xs text-dj-accent-1 transition-colors hover:text-dj-accent-2"
+            >
+              Plein écran ⤢
+            </button>
+          </div>
+          <textarea
+            value={contenu}
+            onChange={(e) => setContenu(e.target.value)}
+            rows={4}
+            className={`${champClasseLocal} resize-y`}
+          />
+        </div>
+
+        {erreur && <p className="text-sm text-[#F87171]">{erreur}</p>}
+
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            disabled={envoi || !titre.trim() || !contenu.trim()}
+            className="self-start rounded-full bg-dj-gradient px-6 py-2.5 text-sm font-bold text-[#1A0D02] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {envoi ? "Publication…" : "Publier la mise à jour"}
+          </button>
+          {message && <span className="text-sm text-dj-texte-muet">{message}</span>}
+        </div>
+      </form>
+
+      {pleinEcran && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-dj-fond p-5">
+          <div className="flex items-center justify-between pb-3">
+            <h2 className="font-display text-lg font-bold text-dj-texte">Mise à jour — {titre || "Détail"}</h2>
+            <button
+              type="button"
+              onClick={() => setPleinEcran(false)}
+              className="rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
+            >
+              Fermer
+            </button>
+          </div>
+          <textarea
+            value={contenu}
+            onChange={(e) => setContenu(e.target.value)}
+            autoFocus
+            className={`${champClasseLocal} flex-1 resize-none`}
+          />
+        </div>
+      )}
+    </section>
   );
 }

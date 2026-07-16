@@ -357,18 +357,18 @@ export function AgentCard({
       {editable ? (
         <div
           onClick={(e) => {
-            // Garde structurelle (2026-07-13, Bourama : "après avoir
-            // cliqué [sur Ajouter une image vitrine], rien du tout") :
-            // ne navigue QUE si le clic vient directement de ce fond de
-            // carte, jamais d'un descendant (bouton image/description/
-            // icône/actif). Plus fiable que de compter sur le
-            // stopPropagation() de chaque zone interactive individuelle
-            // -- un seul oubli suffisait à déclencher une navigation
-            // pendant qu'un sélecteur de fichier natif était ouvert,
-            // démontant la carte avant même que le fichier soit choisi.
-            if (e.target === e.currentTarget) {
-              router.push(`/agent/${agent.id}`);
-            }
+            // Correction du bug "cliquer sur une IA ne fait rien" (Bourama,
+            // 2026-07-15) : l'ancienne garde `e.target === e.currentTarget`
+            // exigeait que le clic tombe EXACTEMENT sur le fond de la
+            // carte, or l'image et le bloc nom/description recouvrent
+            // presque toute sa surface -- en pratique quasi aucun clic ne
+            // pouvait jamais naviguer. Chaque zone réellement interactive
+            // (image, icône, description, bouton actif) appelle déjà
+            // stopper() avant sa propre action (voir plus haut), donc la
+            // propagation ne remonte JAMAIS jusqu'ici depuis ces zones --
+            // pas besoin de la garde en plus, elle ne faisait que casser
+            // le cas normal.
+            router.push(`/agent/${agent.id}`);
           }}
           className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-dj-bordure bg-dj-surface transition-colors hover:border-dj-bordure-forte"
         >

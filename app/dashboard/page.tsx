@@ -13,6 +13,7 @@ import { BoutonPartager } from "@/components/BoutonPartager";
 import { HistoriqueConversations } from "@/components/HistoriqueConversations";
 import { BoutonRetour } from "@/components/BoutonRetour";
 import { BoutonAccueil } from "@/components/BoutonAccueil";
+import { ModalePublierPost } from "@/components/ModalePublierPost";
 
 // Refonte du 2026-07-12 (Bourama) : "Mon espace" doit ressembler
 // EXACTEMENT au portfolio public tel que tout le monde le voit
@@ -24,14 +25,14 @@ import { BoutonAccueil } from "@/components/BoutonAccueil";
 //   pas seulement le bouton)
 //
 // 4 boutons ajoutés ("Modifier le profil", "Modifier une IA",
-// "Publier un article", "Amis et Analytique") : AUCUN n'est branché
-// pour l'instant, sur demande explicite de Bourama ("pour l'instant met
-// les boutons, et un message qui s'affiche avant branchement, en gros ce
-// que les gens vont voir" -- on les branche un par un après). Cliquer
-// affiche juste un message, ne navigue nulle part. Le formulaire
-// d'édition de profil qui vivait ici avant existe toujours, déplacé vers
-// app/dashboard/profil/modifier/page.tsx, prêt à être lié depuis
-// "Modifier le profil" quand ce sera son tour.
+// "Publier un article", "Amis et Analytique") : AUCUN n'était branché au
+// départ, sur demande explicite de Bourama ("pour l'instant met les
+// boutons, et un message qui s'affiche avant branchement" -- brancher un
+// par un après). "Modifier le profil" branché le 2026-07-12. "Publier un
+// article" branché le 2026-07-15 (ouvre ModalePublierPost, voir
+// BOUTONS_PUBLICATION ci-dessous), en même temps que les deux nouveaux
+// boutons Histoire/Réflexion demandés ce jour-là. "Amis" et "Analytique"
+// restent des placeholders.
 
 type ProfilMoi = {
   user_id: string;
@@ -41,12 +42,16 @@ type ProfilMoi = {
   agents: AgentResume[];
 };
 
-const BOUTONS_ESPACE = [
-  "Modifier le profil",
-  "Publier un article",
-  "Amis",
-  "Analytique",
-] as const;
+const BOUTONS_ESPACE = ["Amis", "Analytique"] as const;
+
+// Types de publication (2026-07-15) : chacun ouvre ModalePublierPost avec
+// le type correspondant -- voir api/posts.py pour les règles exactes de
+// chaque type.
+const BOUTONS_PUBLICATION = [
+  { libelle: "Publier un article", type: "article" as const },
+  { libelle: "Histoire", type: "histoire" as const },
+  { libelle: "Réflexion", type: "reflexion" as const },
+];
 
 export default function PageDashboard() {
   const router = useRouter();
@@ -56,7 +61,12 @@ export default function PageDashboard() {
   const [profil, setProfil] = useState<ProfilMoi | null>(null);
   const [messageBouton, setMessageBouton] = useState<string | null>(null);
   const [bulleAgentsOuverte, setBulleAgentsOuverte] = useState(false);
+  const [bulleMajOuverte, setBulleMajOuverte] = useState(false);
   const [bulleHistoriqueOuverte, setBulleHistoriqueOuverte] = useState(false);
+  const [modalePostOuverte, setModalePostOuverte] = useState<"article" | "reflexion" | "histoire" | null>(
+    null
+  );
+  const [messagePublication, setMessagePublication] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -89,12 +99,6 @@ export default function PageDashboard() {
   }, [session]);
 
   function cliquerBouton(libelle: string) {
-    // Boutons branchés (2026-07-12, Bourama) : les autres restent des
-    // placeholders pour l'instant, à brancher un par un.
-    if (libelle === "Modifier le profil") {
-      router.push("/dashboard/profil/modifier");
-      return;
-    }
     setMessageBouton(`« ${libelle} » arrive bientôt, pas encore branché.`);
   }
 
@@ -181,6 +185,24 @@ export default function PageDashboard() {
               )}
             </div>
 
+            {BOUTONS_PUBLICATION.map(({ libelle, type }) => (
+              <button
+                key={libelle}
+                type="button"
+                onClick={() => setModalePostOuverte(type)}
+                className="rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
+              >
+                {libelle}
+              </button>
+            ))}
+
+            <Link
+              href="/dashboard/profil/modifier"
+              className="rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
+            >
+              Modifier le profil
+            </Link>
+
             {BOUTONS_ESPACE.map((libelle) => (
               <button
                 key={libelle}
@@ -195,7 +217,18 @@ export default function PageDashboard() {
           {messageBouton && (
             <p className="text-sm text-dj-texte-muet">{messageBouton}</p>
           )}
+          {messagePublication && (
+            <p className="text-sm text-dj-texte-muet">{messagePublication}</p>
+          )}
         </div>
+
+        {modalePostOuverte && (
+          <ModalePublierPost
+            type={modalePostOuverte}
+            onClose={() => setModalePostOuverte(null)}
+            onPublie={() => setMessagePublication("Publié ✓")}
+          />
+        )}
 
         <section className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
@@ -265,6 +298,43 @@ export default function PageDashboard() {
                 )}
               </div>
 
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setBulleMajOuverte((v) => !v)}
+                  className="rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
+                >
+                  Voir les mises à jour
+                </button>
+
+                {bulleMajOuverte && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setBulleMajOuverte(false)} />
+                    <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-dj-bordure bg-dj-surface p-2 shadow-xl">
+                      {!profil || profil.agents.length === 0 ? (
+                        <p className="px-3 py-2 text-sm text-dj-texte-muet">
+                          Aucune IA créée pour l&apos;instant.
+                        </p>
+                      ) : (
+                        <div className="flex max-h-64 flex-col gap-1 overflow-y-auto">
+                          {profil.agents.map((agent) => (
+                            <Link
+                              key={agent.id}
+                              href={`/agent/${agent.id}#mises-a-jour`}
+                              onClick={() => setBulleMajOuverte(false)}
+                              className="flex items-center gap-2 rounded-full px-3 py-2 text-left text-sm text-dj-texte transition-colors hover:bg-dj-surface-haute"
+                            >
+                              <span className="text-lg leading-none">{agent.icone_page ?? "🤖"}</span>
+                              <span className="truncate">{agent.nom}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+
               <Link
                 href="/dashboard/agents/nouveau"
                 className="rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
@@ -294,20 +364,6 @@ export default function PageDashboard() {
               ))}
             </div>
           )}
-
-          {/* Demande de Bourama (2026-07-15) : "Se déconnecter" retiré de
-              la TopBar, déplacé ici -- tout en bas de la liste des
-              agents -- en lien discret plutôt qu'un bouton, subtil. */}
-          <button
-            type="button"
-            onClick={async () => {
-              await supabase.auth.signOut();
-              router.push("/");
-            }}
-            className="mt-4 self-center text-sm text-dj-texte-muet transition-colors hover:text-dj-texte"
-          >
-            Se déconnecter
-          </button>
         </section>
       </main>
     </div>

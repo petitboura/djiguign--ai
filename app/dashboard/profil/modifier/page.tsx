@@ -143,7 +143,169 @@ export default function PageModifierProfil() {
             {messageProfil && <span className="text-sm text-dj-texte-muet">{messageProfil}</span>}
           </div>
         </form>
+
+        <SectionZoneDanger userId={session.user.id} />
       </main>
     </div>
+  );
+}
+
+function SectionZoneDanger({ userId }: { userId: string }) {
+  // Ajouté le 2026-07-15 (Bourama : "une section danger... il y a se
+  // déconnecter, supprimer mon compte, supprimer un agent, supprimer une
+  // histoire"). "Se déconnecter" vivait avant tout en bas de
+  // /dashboard (voir app/dashboard/page.tsx), déplacé ici pour être
+  // regroupé avec les autres actions de compte. Confirmation native
+  // (window.confirm) sur les 3 actions destructrices -- cohérent avec le
+  // reste du projet, aucune modale de confirmation custom n'existait
+  // encore ailleurs.
+  const router = useRouter();
+
+  const [agents, setAgents] = useState<{ id: string; nom: string; icone_page?: string }[] | null>(null);
+  const [histoires, setHistoires] = useState<{ id: number; titre: string | null }[] | null>(null);
+  const [enSuppression, setEnSuppression] = useState<string | null>(null);
+  const [erreur, setErreur] = useState<string | null>(null);
+
+  useEffect(() => {
+    appelerApi(`/api/profiles/${userId}`)
+      .then((r: { agents: { id: string; nom: string; icone_page?: string }[] }) => setAgents(r.agents))
+      .catch(() => setAgents([]));
+    appelerApi(`/api/posts?type=histoire&user_id=${userId}&limite=50`)
+      .then((r: { id: number; titre: string | null }[]) => setHistoires(r))
+      .catch(() => setHistoires([]));
+  }, [userId]);
+
+  async function seDeconnecter() {
+    await supabase.auth.signOut();
+    router.push("/");
+  }
+
+  async function supprimerAgent(agentId: string) {
+    if (!window.confirm("Supprimer cet agent définitivement ? Cette action est irréversible.")) return;
+    setEnSuppression(`agent-${agentId}`);
+    setErreur(null);
+    try {
+      await appelerApi(`/api/agents/${agentId}`, { method: "DELETE" });
+      setAgents((a) => (a ? a.filter((x) => x.id !== agentId) : a));
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : "Erreur inconnue.");
+    } finally {
+      setEnSuppression(null);
+    }
+  }
+
+  async function supprimerHistoire(postId: number) {
+    if (!window.confirm("Supprimer cette histoire définitivement ? Cette action est irréversible.")) return;
+    setEnSuppression(`histoire-${postId}`);
+    setErreur(null);
+    try {
+      await appelerApi(`/api/posts/${postId}`, { method: "DELETE" });
+      setHistoires((h) => (h ? h.filter((x) => x.id !== postId) : h));
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : "Erreur inconnue.");
+    } finally {
+      setEnSuppression(null);
+    }
+  }
+
+  async function supprimerCompte() {
+    if (
+      !window.confirm(
+        "Supprimer ton compte définitivement ? Tous tes agents, publications et données seront supprimés. Cette action est irréversible."
+      )
+    )
+      return;
+    setEnSuppression("compte");
+    setErreur(null);
+    try {
+      await appelerApi("/api/profiles/me", { method: "DELETE" });
+      await supabase.auth.signOut();
+      router.push("/");
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : "Erreur inconnue.");
+      setEnSuppression(null);
+    }
+  }
+
+  return (
+    <section className="flex flex-col gap-4 rounded-2xl border border-[#F87171]/40 bg-dj-surface p-6">
+      <h2 className="font-display text-base font-bold text-[#F87171]">Zone de danger</h2>
+
+      <button
+        type="button"
+        onClick={seDeconnecter}
+        className="self-start text-sm text-dj-texte-muet transition-colors hover:text-dj-texte"
+      >
+        Se déconnecter
+      </button>
+
+      <div>
+        <p className="text-sm font-medium text-dj-texte">Supprimer un agent</p>
+        {agents === null && <p className="mt-1 text-xs text-dj-texte-muet">Chargement…</p>}
+        {agents?.length === 0 && <p className="mt-1 text-xs text-dj-texte-muet">Aucun agent créé.</p>}
+        {agents && agents.length > 0 && (
+          <div className="mt-2 flex flex-col gap-1.5">
+            {agents.map((agent) => (
+              <div
+                key={agent.id}
+                className="flex items-center justify-between rounded-xl border border-dj-bordure px-3 py-2"
+              >
+                <span className="flex items-center gap-2 text-sm text-dj-texte">
+                  <span>{agent.icone_page ?? "🤖"}</span>
+                  {agent.nom}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => supprimerAgent(agent.id)}
+                  disabled={enSuppression === `agent-${agent.id}`}
+                  className="text-xs text-[#F87171] transition-opacity hover:opacity-70 disabled:opacity-50"
+                >
+                  {enSuppression === `agent-${agent.id}` ? "Suppression…" : "Supprimer"}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <p className="text-sm font-medium text-dj-texte">Supprimer une histoire</p>
+        {histoires === null && <p className="mt-1 text-xs text-dj-texte-muet">Chargement…</p>}
+        {histoires?.length === 0 && <p className="mt-1 text-xs text-dj-texte-muet">Aucune histoire publiée.</p>}
+        {histoires && histoires.length > 0 && (
+          <div className="mt-2 flex flex-col gap-1.5">
+            {histoires.map((h) => (
+              <div
+                key={h.id}
+                className="flex items-center justify-between rounded-xl border border-dj-bordure px-3 py-2"
+              >
+                <span className="truncate text-sm text-dj-texte">{h.titre || "Sans titre"}</span>
+                <button
+                  type="button"
+                  onClick={() => supprimerHistoire(h.id)}
+                  disabled={enSuppression === `histoire-${h.id}`}
+                  className="text-xs text-[#F87171] transition-opacity hover:opacity-70 disabled:opacity-50"
+                >
+                  {enSuppression === `histoire-${h.id}` ? "Suppression…" : "Supprimer"}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {erreur && <p className="text-sm text-[#F87171]">{erreur}</p>}
+
+      <div className="border-t border-dj-bordure pt-4">
+        <button
+          type="button"
+          onClick={supprimerCompte}
+          disabled={enSuppression === "compte"}
+          className="rounded-full border border-[#F87171] px-4 py-2 text-sm text-[#F87171] transition-colors hover:bg-[#F87171]/10 disabled:opacity-50"
+        >
+          {enSuppression === "compte" ? "Suppression…" : "Supprimer mon compte"}
+        </button>
+      </div>
+    </section>
   );
 }

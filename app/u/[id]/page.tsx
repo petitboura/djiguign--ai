@@ -8,6 +8,7 @@ import { BoutonAccueil } from "@/components/BoutonAccueil";
 import { AgentCard, type AgentResume } from "@/components/AgentCard";
 import { BoutonFollow } from "@/components/BoutonFollow";
 import { BoutonPartager } from "@/components/BoutonPartager";
+import { SectionsPostsCreateur } from "@/components/SectionsPostsCreateur";
 
 // Étape D.4 (pivot social) : portfolio créateur `/u/[id]` (en pratique
 // user_id, pas un vrai slug — voir docstring de api/profiles.py et
@@ -101,6 +102,8 @@ export default async function PagePortfolio({ params }: { params: { id: string }
             </div>
           )}
         </section>
+
+        <SectionsPostsCreateur userId={profil.user_id} />
       </main>
     </div>
   );

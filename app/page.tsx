@@ -6,6 +6,7 @@ import { TopBar } from "@/components/TopBar";
 import { AgentCard, type AgentResume } from "@/components/AgentCard";
 import { CreateurCard, type CreateurResume } from "@/components/CreateurCard";
 import { PopupCategories, type Categorie } from "@/components/PopupCategories";
+import { PostCard, type PostResume } from "@/components/PostCard";
 
 // Étape D.2 (pivot social) : "/" est le feed PUBLIC (voir tableau des pages
 // dans PIVOT_SOCIAL.md), pas une page qui exige une connexion — c'est un
@@ -20,10 +21,17 @@ import { PopupCategories, type Categorie } from "@/components/PopupCategories";
 // la fois (`ongletActif`) — les deux feeds gardent leur propre état de
 // pagination indépendant pour ne pas perdre la position en changeant
 // d'onglet puis en y revenant.
+//
+// Article / Réflexion / Histoire ajoutés le 2026-07-15 (Bourama) : même
+// principe, 3 feeds de plus (GET /api/posts?type=...), chacun avec sa
+// propre pagination. Les onglets passent de "boutons pilule" à "onglets
+// texte + ligne de couleur en dessous pour l'actif" (même demande) --
+// nouveau composant Onglet ci-dessous pour ne pas répéter ce style 5 fois.
 
 const LIMITE = 20;
 
-type Onglet = "agents" | "createurs";
+type Onglet = "agents" | "createurs" | "article" | "reflexion" | "histoire";
+type TypePost = "article" | "reflexion" | "histoire";
 
 type EtatFeed =
   | { statut: "chargement" }
@@ -33,6 +41,11 @@ type EtatFeed =
 type EtatFeedCreateurs =
   | { statut: "chargement" }
   | { statut: "ok"; createurs: CreateurResume[]; page: number; total: number }
+  | { statut: "erreur"; message: string };
+
+type EtatFeedPosts =
+  | { statut: "chargement" }
+  | { statut: "ok"; posts: PostResume[] }
   | { statut: "erreur"; message: string };
 
 type EtatRecherche =
@@ -54,6 +67,12 @@ export default function PageAccueil() {
 
   const [feedCreateurs, setFeedCreateurs] = useState<EtatFeedCreateurs>({ statut: "chargement" });
   const [pageCreateurs, setPageCreateurs] = useState(1);
+
+  const [feedsPosts, setFeedsPosts] = useState<Record<TypePost, EtatFeedPosts>>({
+    article: { statut: "chargement" },
+    reflexion: { statut: "chargement" },
+    histoire: { statut: "chargement" },
+  });
 
   const [requete, setRequete] = useState("");
   const [recherche, setRecherche] = useState<EtatRecherche>({ statut: "inactif" });
@@ -109,6 +128,36 @@ export default function PageAccueil() {
       annule = true;
     };
   }, [ongletActif, pageCreateurs]);
+
+  // Un seul feed posts chargé à la fois (celui de l'onglet actif), pas les
+  // 3 en même temps — même logique paresseuse que le feed créateurs
+  // ci-dessus. Pas de pagination pour l'instant (limite haute, page 1
+  // fixe) : le volume attendu au lancement de la fonctionnalité reste
+  // faible, à revoir si ça devient nécessaire.
+  useEffect(() => {
+    if (ongletActif !== "article" && ongletActif !== "reflexion" && ongletActif !== "histoire") return;
+    const type = ongletActif;
+
+    let annule = false;
+    setFeedsPosts((f) => ({ ...f, [type]: { statut: "chargement" } }));
+
+    appelerApi(`/api/posts?type=${type}&page=1&limite=${LIMITE}`)
+      .then((reponse: PostResume[]) => {
+        if (annule) return;
+        setFeedsPosts((f) => ({ ...f, [type]: { statut: "ok", posts: reponse } }));
+      })
+      .catch((e) => {
+        if (annule) return;
+        setFeedsPosts((f) => ({
+          ...f,
+          [type]: { statut: "erreur", message: e instanceof Error ? e.message : "Erreur inconnue" },
+        }));
+      });
+
+    return () => {
+      annule = true;
+    };
+  }, [ongletActif]);
 
   // Recherche débouncée : on attend que la personne arrête de taper
   // (300ms) avant d'appeler l'API, et on annule une recherche en vol si une
@@ -176,36 +225,35 @@ export default function PageAccueil() {
             <ResultatsRecherche etat={recherche} />
           ) : (
             <>
-              <div className="mb-6 flex flex-wrap items-center justify-center gap-2">
-                <button
-                  onClick={() => setOngletActif("agents")}
-                  className={`rounded-full px-4 py-1.5 text-sm transition-colors ${
-                    ongletActif === "agents"
-                      ? "bg-dj-gradient font-medium text-[#1A0D02]"
-                      : "border border-dj-bordure text-dj-texte-muet hover:border-dj-bordure-forte"
-                  }`}
-                >
-                  IA
-                </button>
-                <button
-                  onClick={() => setOngletActif("createurs")}
-                  className={`rounded-full px-4 py-1.5 text-sm transition-colors ${
-                    ongletActif === "createurs"
-                      ? "bg-dj-gradient font-medium text-[#1A0D02]"
-                      : "border border-dj-bordure text-dj-texte-muet hover:border-dj-bordure-forte"
-                  }`}
-                >
-                  Créateurs
-                </button>
+              <div className="mb-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 border-b border-dj-bordure pb-0">
+                <div className="flex flex-wrap justify-center gap-x-6">
+                  <Onglet actif={ongletActif === "agents"} onClick={() => setOngletActif("agents")}>
+                    IA
+                  </Onglet>
+                  <Onglet actif={ongletActif === "createurs"} onClick={() => setOngletActif("createurs")}>
+                    Créateurs
+                  </Onglet>
+                  <Onglet actif={ongletActif === "article"} onClick={() => setOngletActif("article")}>
+                    Article
+                  </Onglet>
+                  <Onglet actif={ongletActif === "reflexion"} onClick={() => setOngletActif("reflexion")}>
+                    Réflexion
+                  </Onglet>
+                  <Onglet actif={ongletActif === "histoire"} onClick={() => setOngletActif("histoire")}>
+                    Histoire
+                  </Onglet>
+                </div>
 
-                {/* Bouton catégories : volontairement carré/à icône, PAS
-                    en pilule comme Agents/Créateurs ci-dessus (Bourama :
-                    "un bouton qui ne ressemble pas au bouton créateurs ou
-                    agent") -- pour signaler visuellement que ce n'est pas
-                    un 3e onglet mais un filtre à part. */}
+                {/* Bouton catégories : laissé exactement tel quel (Bourama,
+                    2026-07-15 : "le bouton catégorie lui reste") --
+                    volontairement carré/à icône, PAS un onglet, pour
+                    signaler visuellement que c'est un filtre à part et non
+                    une 6e section. mb-3 pour compenser l'absence de
+                    border-b-2 des Onglet ci-dessus (sinon désaligné
+                    verticalement avec eux). */}
                 <button
                   onClick={() => setPopupCategoriesOuvert(true)}
-                  className="flex items-center gap-1.5 rounded-lg border border-dj-bordure px-3 py-1.5 text-sm text-dj-texte-muet transition-colors hover:border-dj-accent-1 hover:text-dj-texte"
+                  className="mb-3 flex items-center gap-1.5 rounded-lg border border-dj-bordure px-3 py-1.5 text-sm text-dj-texte-muet transition-colors hover:border-dj-accent-1 hover:text-dj-texte"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <rect x="3" y="3" width="7" height="7" rx="1.5" />
@@ -223,7 +271,7 @@ export default function PageAccueil() {
                       setPage(1);
                     }}
                     aria-label="Retirer le filtre de catégorie"
-                    className="text-dj-texte-muet transition-colors hover:text-dj-texte"
+                    className="mb-3 text-dj-texte-muet transition-colors hover:text-dj-texte"
                   >
                     ✕
                   </button>
@@ -242,20 +290,81 @@ export default function PageAccueil() {
                 }}
               />
 
-              {ongletActif === "agents" ? (
+              {ongletActif === "agents" && (
                 <GrilleFeed etat={feed} page={page} onChangerPage={setPage} />
-              ) : (
+              )}
+              {ongletActif === "createurs" && (
                 <GrilleCreateurs
                   etat={feedCreateurs}
                   page={pageCreateurs}
                   onChangerPage={setPageCreateurs}
                 />
               )}
+              {(ongletActif === "article" || ongletActif === "reflexion" || ongletActif === "histoire") && (
+                <GrillePosts etat={feedsPosts[ongletActif]} type={ongletActif} />
+              )}
             </>
           )}
         </div>
       </main>
     </>
+  );
+}
+
+function Onglet({
+  actif,
+  onClick,
+  children,
+}: {
+  actif: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  // Demande Bourama, 2026-07-15 : "plus de bouton mais comme onglet avec
+  // ligne de couleur en dessous", le reste du texte "vide" (aucun fond,
+  // aucune bordure). border-b-2 transparent au repos pour garder la même
+  // hauteur qu'actif et éviter que le contenu ne saute d'1-2px au clic.
+  return (
+    <button
+      onClick={onClick}
+      className={`border-b-2 px-1 pb-3 text-sm transition-colors ${
+        actif
+          ? "border-dj-accent-1 font-medium text-dj-texte"
+          : "border-transparent text-dj-texte-muet hover:text-dj-texte"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function GrillePosts({ etat, type }: { etat: EtatFeedPosts; type: TypePost }) {
+  const messagesVides: Record<TypePost, string> = {
+    article: "Aucun article publié pour l'instant.",
+    reflexion: "Aucune réflexion partagée pour l'instant.",
+    histoire: "Aucune histoire publiée pour l'instant.",
+  };
+
+  if (etat.statut === "chargement") {
+    return <EtatVide message="Chargement…" />;
+  }
+
+  if (etat.statut === "erreur") {
+    return <EtatVide message="Impossible de charger pour le moment." details={etat.message} />;
+  }
+
+  if (etat.posts.length === 0) {
+    return <EtatVide message={messagesVides[type]} />;
+  }
+
+  const colonnes = type === "reflexion" ? "sm:grid-cols-2" : "sm:grid-cols-2 md:grid-cols-3";
+
+  return (
+    <div className={`grid grid-cols-1 gap-5 ${colonnes}`}>
+      {etat.posts.map((post) => (
+        <PostCard key={post.id} post={post} />
+      ))}
+    </div>
   );
 }
 

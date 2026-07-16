@@ -8,6 +8,7 @@ import { BoutonAccueil } from "@/components/BoutonAccueil";
 import { BoutonUtiliser } from "@/components/BoutonUtiliser";
 import { NoteAgent } from "@/components/NoteAgent";
 import { CommentairesAgent } from "@/components/CommentairesAgent";
+import { MisesAJourAgent } from "@/components/MisesAJourAgent";
 import { BoutonPartager } from "@/components/BoutonPartager";
 import { BoutonProfilCreateur } from "@/components/BoutonProfilCreateur";
 
@@ -98,6 +99,11 @@ export default async function PageAgent({ params }: { params: { id: string } }) 
             <NoteAgent agentId={agent.id} />
           </div>
         </div>
+
+        <section className="flex flex-col gap-4">
+          <h2 className="font-display text-lg font-bold text-dj-texte">Mises à jour</h2>
+          <MisesAJourAgent agentId={agent.id} nomAgent={agent.nom} />
+        </section>
 
         <section className="flex flex-col gap-4">
           <h2 className="font-display text-lg font-bold text-dj-texte">Commentaires</h2>

@@ -16,7 +16,7 @@ import { PleinEcran } from "@/components/PleinEcran";
 
 type NotificationItem = {
   id: number;
-  type: "follow" | "comment" | "rating" | "categorie_manquante";
+  type: "follow" | "comment" | "rating" | "categorie_manquante" | "agent_update";
   lu: boolean;
   created_at: string | null;
   acteur_id: string;
@@ -25,6 +25,7 @@ type NotificationItem = {
   agent_id: string | null;
   agent_nom: string | null;
   agent_icone: string | null;
+  update_id: number | null;
 };
 
 type NotificationsReponse = {
@@ -73,6 +74,14 @@ function IconeType({ type }: { type: NotificationItem["type"] }) {
       </svg>
     );
   }
+  if (type === "agent_update") {
+    return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M12 3v10M12 3l4 4M12 3 8 7" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
       <path d="M12 3.5 14.6 9l6 .9-4.3 4.2 1 6-5.3-2.8L6.7 20.1l1-6L3.4 9.9l6-.9L12 3.5Z" />
@@ -86,12 +95,16 @@ function texteNotification(n: NotificationItem) {
   if (n.type === "comment") return `${nom} a commenté ${n.agent_nom ?? "ton IA"}.`;
   if (n.type === "categorie_manquante")
     return `Choisis une catégorie pour ${n.agent_nom ?? "ton IA"}.`;
+  if (n.type === "agent_update") return `${nom} a publié une mise à jour sur ${n.agent_nom ?? "une IA"}.`;
   return `${nom} a noté ${n.agent_nom ?? "ton IA"}.`;
 }
 
 function lienNotification(n: NotificationItem) {
   if (n.type === "follow") return `/u/${n.acteur_id}`;
   if (n.type === "categorie_manquante" && n.agent_id) return `/dashboard/agents/${n.agent_id}/modifier`;
+  if (n.type === "agent_update" && n.agent_id) {
+    return n.update_id ? `/agent/${n.agent_id}#maj-${n.update_id}` : `/agent/${n.agent_id}#mises-a-jour`;
+  }
   if (n.agent_id) return `/agent/${n.agent_id}`;
   return null;
 }
