@@ -4,6 +4,7 @@ import { appelerApiPublicOuNull } from "@/lib/api-serveur";
 import { BoutonRetour } from "@/components/BoutonRetour";
 import { BoutonAccueil } from "@/components/BoutonAccueil";
 import { BoutonPartager } from "@/components/BoutonPartager";
+import { BoutonInstaller } from "@/components/BoutonInstaller";
 import { ChatIA } from "@/components/chat/ChatIA";
 
 // Remplace chat.py (Streamlit sur Railway) -- voir MIGRATION_CHAT_VERS_NEXTJS.md,
@@ -28,7 +29,16 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const agent = await chargerAgent(params.id);
   if (!agent) return { title: "IA introuvable — Djiguignè AI" };
-  return { title: `Discuter avec ${agent.nom} — Djiguignè AI` };
+  return {
+    title: `Discuter avec ${agent.nom} — Djiguignè AI`,
+    // Installation par IA (Bourama, 2026-07-15) : ce manifest et cette
+    // icône remplacent ceux de app/layout.tsx UNIQUEMENT sur cette page
+    // -- voir app/agent/[id]/manifest.webmanifest/route.ts pour le
+    // détail iOS/Android.
+    manifest: `/agent/${agent.id}/manifest.webmanifest`,
+    icons: { apple: `/agent/${agent.id}/icone?taille=192` },
+    appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: agent.nom },
+  };
 }
 
 export default async function PageChatAgent({ params }: { params: { id: string } }) {
@@ -46,7 +56,10 @@ export default async function PageChatAgent({ params }: { params: { id: string }
             <span className="font-display font-semibold">{agent.nom}</span>
           </span>
         </div>
-        <BoutonPartager chemin={`/agent/${agent.id}/chat`} titre={agent.nom} />
+        <div className="flex items-center gap-2">
+          <BoutonInstaller />
+          <BoutonPartager chemin={`/agent/${agent.id}/chat`} titre={agent.nom} />
+        </div>
       </header>
 
       <div className="flex-1 overflow-hidden">
