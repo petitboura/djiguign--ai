@@ -51,6 +51,15 @@ export function RecadreurImage({
   // pour pouvoir extraire l'image d'une URL distante (Supabase Storage)
   // dans un <canvas> sans que ce soit considéré "tainted" par le
   // navigateur -- sans effet néfaste sur une URL locale (objectURL).
+  // Fix (Bourama, 2026-07-17 : "la page plante" à l'upload / "Enregistrer
+  // ne marche pas sauf si tu annules") : ce useEffect n'avait QUE
+  // `img.onload`, jamais `img.onerror`. Si le chargement échouait (réseau,
+  // image cassée, CORS), `image` restait `null` pour toujours -> le
+  // bouton Valider (disabled={!image}) restait bloqué indéfiniment, et
+  // comme ce cadreur est un plein-écran (`fixed inset-0 z-50`), il
+  // empêchait tout clic ailleurs sur la page, y compris sur "Enregistrer"
+  // du formulaire en dessous. Seul "Annuler" pouvait en sortir. `onerror`
+  // affiche maintenant un vrai message au lieu de bloquer silencieusement.
   useEffect(() => {
     const estFichier = typeof source !== "string";
     const url = estFichier ? URL.createObjectURL(source as File) : (source as string);
@@ -60,6 +69,9 @@ export function RecadreurImage({
       setImage(img);
       setZoom(1);
       setDecalage({ x: 0, y: 0 });
+    };
+    img.onerror = () => {
+      setErreur("Impossible de charger cette image. Annule et réessaie avec une autre.");
     };
     img.src = url;
     return () => {
