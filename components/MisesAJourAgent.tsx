@@ -49,17 +49,20 @@ export function MisesAJourAgent({ agentId, nomAgent }: { agentId: string; nomAge
     });
   }, [agentId]);
 
-  if (maj === null) {
-    return <p className="text-sm text-dj-texte-muet">Chargement…</p>;
-  }
-
-  if (maj.length === 0) {
-    return <p className="text-sm text-dj-texte-muet">Aucune mise à jour pour l'instant.</p>;
-  }
-
+  // Fix (Bourama, 2026-07-17 : "tu clique sur voir les mises à jour...
+  // rien ou bug") : ce `id="mises-a-jour"` est la cible du lien
+  // `/agent/{id}#mises-a-jour` (voir dashboard/page.tsx). Il DOIT être
+  // présent dès le premier rendu, sinon le navigateur essaie de scroller
+  // vers un élément qui n'existe pas encore (pendant le chargement) ou
+  // qui n'existera jamais (agent sans mise à jour) -- d'où le "rien" :
+  // aucune erreur, le lien fonctionne, juste aucune cible à atteindre.
   return (
     <div id="mises-a-jour" className="flex flex-col gap-4">
-      {maj.map((m) => (
+      {maj === null && <p className="text-sm text-dj-texte-muet">Chargement…</p>}
+      {maj !== null && maj.length === 0 && (
+        <p className="text-sm text-dj-texte-muet">Aucune mise à jour pour l&apos;instant.</p>
+      )}
+      {maj?.map((m) => (
         <ItemMiseAJour key={m.id} agentId={agentId} nomAgent={nomAgent} maj={m} connecte={connecte} />
       ))}
     </div>
