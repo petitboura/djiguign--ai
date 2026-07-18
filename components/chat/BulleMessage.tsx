@@ -4,9 +4,22 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import rehypeKatex from "rehype-katex";
 import { Copy, RotateCw, Pencil, Volume2, ThumbsUp, ThumbsDown, Check } from "lucide-react";
 import { formaterHeure } from "@/lib/formatageHeure";
+
+// Le modèle mélange parfois du HTML brut dans son Markdown (le plus
+// courant : "<br>" pour forcer un retour à la ligne dans une liste ou une
+// cellule de tableau -- signalé par Bourama, ça s'affichait juste comme
+// du texte littéral "<br>-"). Sans plugin dédié, remark/react-markdown
+// n'interprète JAMAIS le HTML brut du Markdown source : il l'échappe et
+// l'affiche tel quel, par sécurité. rehype-raw le fait redevenir de
+// vraies balises ; rehype-sanitize passe juste derrière pour retirer tout
+// ce qui serait dangereux (<script>, attributs on*...) si jamais le
+// modèle en générait -- le schéma par défaut (celui de GitHub) autorise
+// déjà <br>, les tableaux, listes, etc.
 
 // Le modèle (GPT-OSS/Groq) écrit ses formules avec les délimiteurs
 // \( \) et \[ \] (convention OpenAI-like). Mais en Markdown (CommonMark,
@@ -119,7 +132,7 @@ export function BulleMessage({
               part la normalisation des délimiteurs ci-dessus. */}
           <ReactMarkdown
             remarkPlugins={[remarkGfm, remarkMath]}
-            rehypePlugins={[rehypeKatex]}
+            rehypePlugins={[rehypeRaw, [rehypeSanitize, defaultSchema], rehypeKatex]}
           >
             {normaliserLatex(message.content)}
           </ReactMarkdown>
