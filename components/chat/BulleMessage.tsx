@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, isValidElement, ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -9,6 +9,25 @@ import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import rehypeKatex from "rehype-katex";
 import { Copy, RotateCw, Pencil, Volume2, ThumbsUp, ThumbsDown, Check, MessageSquareQuote } from "lucide-react";
 import { formaterHeure } from "@/lib/formatageHeure";
+import { BlocCode } from "./BlocCode";
+import { Mermaid } from "./Mermaid";
+import { GraphiqueDonnees } from "./GraphiqueDonnees";
+import { CarteMessage } from "./CarteMessage";
+import { WidgetSandbox } from "./WidgetSandbox";
+import { ImageMessage } from "./ImageMessage";
+import { TableauMessage } from "./TableauMessage";
+import { FichierChip, extensionFichier } from "./FichierChip";
+import { LecteurMedia, typeMedia } from "./LecteurMedia";
+
+// Extrait le texte brut d'un enfant React -- nécessaire pour récupérer le
+// contenu source d'un bloc de code (```lang ... ```) tel que ReactMarkdown
+// le structure : <pre><code className="language-xxx">texte brut</code></pre>.
+function texteBrut(node: ReactNode): string {
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(texteBrut).join("");
+  if (isValidElement(node)) return texteBrut((node.props as { children?: ReactNode }).children);
+  return "";
+}
 
 // Le modèle mélange parfois du HTML brut dans son Markdown (le plus
 // courant : "<br>" pour forcer un retour à la ligne dans une liste ou une
@@ -146,7 +165,7 @@ export function BulleMessage({
         <div
           ref={conteneurRef}
           onMouseUp={gererFinSelection}
-          className="dj-markdown [&_a]:text-dj-accent-1 [&_a]:underline [&_a:hover]:text-dj-accent-2 [&_table]:my-2 [&_td]:border [&_td]:border-dj-bordure [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-dj-bordure [&_th]:px-2 [&_th]:py-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 last:[&_p]:mb-0 [&_h1]:font-display [&_h1]:font-bold [&_h1]:tracking-[-0.01em] [&_h1]:text-dj-texte [&_h1]:text-xl [&_h1]:mb-2 [&_h1]:mt-3 [&_h2]:font-display [&_h2]:font-bold [&_h2]:tracking-[-0.01em] [&_h2]:text-dj-texte [&_h2]:text-lg [&_h2]:mb-2 [&_h2]:mt-3 [&_h3]:font-display [&_h3]:font-bold [&_h3]:tracking-[-0.01em] [&_h3]:text-dj-texte [&_h3]:text-base [&_h3]:mb-1.5 [&_h3]:mt-2"
+          className="dj-markdown [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 last:[&_p]:mb-0 [&_h1]:font-display [&_h1]:font-bold [&_h1]:tracking-[-0.01em] [&_h1]:text-dj-texte [&_h1]:text-xl [&_h1]:mb-2 [&_h1]:mt-3 [&_h2]:font-display [&_h2]:font-bold [&_h2]:tracking-[-0.01em] [&_h2]:text-dj-texte [&_h2]:text-lg [&_h2]:mb-2 [&_h2]:mt-3 [&_h3]:font-display [&_h3]:font-bold [&_h3]:tracking-[-0.01em] [&_h3]:text-dj-texte [&_h3]:text-base [&_h3]:mb-1.5 [&_h3]:mt-2"
         >
           {/* remarkGfm (tableaux/gras/liens) + remarkMath/rehypeKatex
               (LaTeX) tournent dans LA MÊME passe de parsing -- c'est ça
@@ -157,6 +176,76 @@ export function BulleMessage({
           <ReactMarkdown
             remarkPlugins={[remarkGfm, remarkMath]}
             rehypePlugins={[rehypeRaw, [rehypeSanitize, defaultSchema], rehypeKatex]}
+            components={{
+              // Bloc de code (```lang ... ```) : ReactMarkdown structure ça
+              // en <pre><code className="language-xxx">...</code></pre> --
+              // on intercepte au niveau `pre` pour router selon le langage
+              // déclaré AVANT toute coloration syntaxique, pendant qu'on a
+              // encore le texte source intact (nécessaire pour Mermaid/
+              // Chart/Carte/Widget, qui ont besoin du texte brut, pas
+              // d'un HTML déjà transformé).
+              pre({ children }) {
+                const enfant = Array.isArray(children) ? children[0] : children;
+                if (!isValidElement(enfant)) return <pre>{children}</pre>;
+
+                const props = enfant.props as { className?: string; children?: ReactNode };
+                const langage = (props.className || "").replace("language-", "").trim();
+                const code = texteBrut(props.children).replace(/\n$/, "");
+
+                switch (langage) {
+                  case "mermaid":
+                    return <Mermaid definition={code} />;
+                  case "chart":
+                    return <GraphiqueDonnees code={code} />;
+                  case "carte":
+                    return <CarteMessage code={code} />;
+                  case "widget":
+                  case "html":
+                    return <WidgetSandbox code={code} />;
+                  default:
+                    return <BlocCode langage={langage} code={code} />;
+                }
+              },
+              // Code inline (`texte`) : ne passe jamais par `pre` ci-dessus
+              // -- juste un style discret, pas de coloration (pas assez de
+              // contexte pour un langage sur un fragment isolé).
+              code({ children }) {
+                return (
+                  <code className="rounded bg-dj-surface-haute px-1.5 py-0.5 font-mono text-[13px] text-dj-accent-1">
+                    {children}
+                  </code>
+                );
+              },
+              img({ src, alt }) {
+                return <ImageMessage src={typeof src === "string" ? src : undefined} alt={alt} />;
+              },
+              table({ children }) {
+                return <TableauMessage>{children}</TableauMessage>;
+              },
+              // Lien : bascule vers une carte fichier ou un lecteur média
+              // si l'extension de l'URL le justifie, sinon lien normal
+              // (couleur accent + underline directement ici, pour ne pas
+              // dépendre d'une règle globale qui entrerait en conflit
+              // avec le no-underline de FichierChip sur le même <a>).
+              a({ href, children }) {
+                if (!href) return <>{children}</>;
+                const media = typeMedia(href);
+                if (media) return <LecteurMedia href={href} type={media} />;
+                if (extensionFichier(href)) {
+                  return <FichierChip href={href} nom={texteBrut(children) || href} />;
+                }
+                return (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-dj-accent-1 underline hover:text-dj-accent-2"
+                  >
+                    {children}
+                  </a>
+                );
+              },
+            }}
           >
             {normaliserLatex(message.content)}
           </ReactMarkdown>
