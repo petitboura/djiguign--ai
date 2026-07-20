@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { appelerApiStream } from "@/lib/api";
+import { appelerApiStream, uploaderImageChat, uploaderDocumentChat, uploaderVideoChat } from "@/lib/api";
 import { BulleMessage, MessageAffiche } from "./BulleMessage";
-import { BarreDeSaisie, LongueurReponse } from "./BarreDeSaisie";
+import { BarreDeSaisie, LongueurReponse, LocalisationJointe } from "./BarreDeSaisie";
 import { PopupFeedback } from "./PopupFeedback";
 
 // Page de chat qui remplace chat.py (Streamlit) -- voir
@@ -49,10 +49,12 @@ export function ChatIA({
     });
   }
 
-  async function envoyerMessage(texte: string, longueur: LongueurReponse, _fichier: File | null) {
-    // Upload de fichier : pas encore branché côté route /api/chat (voir
-    // section 4, "petit à petit") -- le fichier est sélectionné/prévisualisé
-    // mais pas encore transmis au backend à cette étape.
+  async function envoyerMessage(
+    texte: string,
+    longueur: LongueurReponse,
+    fichier: File | null,
+    localisation: LocalisationJointe = null
+  ) {
     const messageUtilisateur: MessageAffiche = {
       id: null,
       role: "user",
@@ -64,15 +66,77 @@ export function ChatIA({
     majMessages((prec) => [...prec, messageUtilisateur, { id: null, role: "assistant", content: "" }]);
     setGenEnCours(true);
 
+    // Upload/traitement du fichier AVANT le message texte :
+    // - image -> /api/chat a besoin de l'URL finale dans image_url (voir
+    //   api/chat.py + core/main.py:chat(), branche image_url -- routage
+    //   direct vers Gemini, seul modèle multimodal de la cascade).
+    // - PDF/Word/Excel -> texte extrait côté backend (voir
+    //   api/uploads.py:uploader_document_chat) et injecté APRÈS le texte
+    //   de l'étudiant, jamais à la place -- le cascade Groq habituel le
+    //   traite comme du texte normal, aucun changement de modèle requis.
+    // - vidéo (2026-07-20) -> traitement combiné : la piste audio est
+    //   transcrite (Whisper) et injectée comme texte (comme un document),
+    //   les frames image sont envoyées à Gemini (comme des images) --
+    //   voir api/uploads.py:uploader_video_chat et core/main.py:chat(),
+    //   paramètre images_base64.
+    let imageUrl: string | null = null;
+    let imagesBase64: string[] | null = null;
+    let texteEnrichi = texte;
+    let typeFichier: "image" | "document" | "video" | null = null;
+    if (fichier) {
+      typeFichier = fichier.type.startsWith("image/")
+        ? "image"
+        : fichier.type.startsWith("video/")
+        ? "video"
+        : "document";
+      try {
+        if (typeFichier === "image") {
+          imageUrl = await uploaderImageChat(fichier);
+        } else if (typeFichier === "video") {
+          const { transcript, frames_base64 } = await uploaderVideoChat(fichier);
+          imagesBase64 = frames_base64.length ? frames_base64 : null;
+          texteEnrichi = transcript
+            ? `${texte}\n\n[Vidéo jointe : ${fichier.name} -- transcription audio]\n${transcript}`
+            : `${texte}\n\n[Vidéo jointe : ${fichier.name} -- pas de son exploitable, images seules]`;
+        } else {
+          const { texte: texteDocument, tronque } = await uploaderDocumentChat(fichier);
+          texteEnrichi =
+            `${texte}\n\n[Document joint : ${fichier.name}${tronque ? " (tronqué)" : ""}]\n${texteDocument}`;
+        }
+      } catch (e) {
+        majMessages((prec) => {
+          const copie = [...prec];
+          copie[copie.length - 1] = {
+            ...copie[copie.length - 1],
+            content:
+              typeFichier === "image"
+                ? "Je n'ai pas pu envoyer l'image jointe, réessaie."
+                : typeFichier === "video"
+                ? "Je n'ai pas pu traiter la vidéo jointe, réessaie."
+                : "Je n'ai pas pu lire le document joint, réessaie.",
+          };
+          return copie;
+        });
+        setGenEnCours(false);
+        return;
+      }
+    }
+
     try {
       await appelerApiStream(
         "/api/chat",
         {
-          message: texte,
+          message: texteEnrichi,
           agent_id: agentId,
           historique: historiquePourApi,
           conversation_id: conversationId,
           longueur_reponse: longueur,
+          image_url: imageUrl,
+          images_base64: imagesBase64,
+          localisation,
+          // Fuseau du navigateur, pas une valeur figée côté code -- voir
+          // core/main.py:chat(), paramètre fuseau_horaire.
+          fuseau_horaire: Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
         (evenement) => {
           if (evenement.type === "reponse") {
@@ -132,6 +196,13 @@ export function ChatIA({
     envoyerMessage(nouveauTexte, "moyenne", null);
   }
 
+  function expliquerSelection(texteSelectionne: string) {
+    // Signal non textuel (sélection de souris/tactile dans une réponse
+    // assistant) converti en message texte classique -- pas de nouveau
+    // champ backend, juste un prompt construit côté frontend.
+    envoyerMessage(`Peux-tu expliquer ce passage : "${texteSelectionne}"`, "moyenne", null);
+  }
+
   return (
     <div className="mx-auto flex h-full w-full max-w-3xl flex-col">
       <div className="flex-1 space-y-5 overflow-y-auto px-4 py-6">
@@ -165,6 +236,7 @@ export function ChatIA({
                 ? () => setPopupFeedback({ type: "negatif", messageId: message.id!, questionMessageId: messages[index - 1]?.id ?? null })
                 : undefined
             }
+            onExpliquerSelection={message.role === "assistant" ? expliquerSelection : undefined}
           />
         ))}
       </div>

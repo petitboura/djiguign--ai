@@ -120,7 +120,7 @@ export async function appelerApiFichier(chemin: string, fichier: File) {
   } = await supabase.auth.getSession();
 
   if (!session?.access_token) {
-    throw new Error("Connecte-toi pour envoyer une image.");
+    throw new Error("Connecte-toi pour envoyer un fichier.");
   }
 
   const corps = new FormData();
@@ -138,4 +138,49 @@ export async function appelerApiFichier(chemin: string, fichier: File) {
   }
 
   return reponse.json();
+}
+
+/**
+ * Upload d'une image jointe à un message de chat, avant l'envoi du message
+ * lui-même -- voir api/uploads.py:uploader_image_chat côté backend et
+ * components/chat/ChatIA.tsx:envoyerMessage côté appelant. Réutilise
+ * appelerApiFichier (même mécanique FormData) sur le nouvel endpoint dédié
+ * au chat. Renvoie l'URL publique à passer dans `image_url` du payload
+ * /api/chat.
+ */
+export async function uploaderImageChat(fichier: File) {
+  const resultat = await appelerApiFichier("/api/uploads/image-chat", fichier);
+  return resultat.url as string;
+}
+
+/**
+ * Extraction texte d'un document (PDF/Word/Excel) joint à un message de
+ * chat -- voir api/uploads.py:uploader_document_chat. Ne renvoie pas
+ * d'URL (rien n'est stocké) : le texte extrait est injecté directement
+ * dans le message avant envoi à /api/chat.
+ */
+export async function uploaderDocumentChat(fichier: File) {
+  const resultat = await appelerApiFichier("/api/uploads/document-chat", fichier);
+  return resultat as { texte: string; tronque: boolean };
+}
+
+/**
+ * Transcription d'un enregistrement audio (dictée vocale) via
+ * api/uploads.py:uploader_audio_chat (Whisper/Groq). Le fichier est un
+ * Blob MediaRecorder emballé en File côté BarreDeSaisie.tsx.
+ */
+export async function transcrireAudioChat(fichier: File) {
+  const resultat = await appelerApiFichier("/api/uploads/audio-chat", fichier);
+  return resultat as { texte: string };
+}
+
+/**
+ * Traitement d'une vidéo jointe à un message de chat -- voir
+ * api/uploads.py:uploader_video_chat (extraction audio via Whisper +
+ * frames via ffmpeg, analysées ensuite par Gemini). Rien n'est stocké,
+ * la vidéo est traitée puis jetée côté backend.
+ */
+export async function uploaderVideoChat(fichier: File) {
+  const resultat = await appelerApiFichier("/api/uploads/video-chat", fichier);
+  return resultat as { transcript: string; frames_base64: string[] };
 }

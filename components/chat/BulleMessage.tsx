@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import rehypeKatex from "rehype-katex";
-import { Copy, RotateCw, Pencil, Volume2, ThumbsUp, ThumbsDown, Check } from "lucide-react";
+import { Copy, RotateCw, Pencil, Volume2, ThumbsUp, ThumbsDown, Check, MessageSquareQuote } from "lucide-react";
 import { formaterHeure } from "@/lib/formatageHeure";
 
 // Le modèle mélange parfois du HTML brut dans son Markdown (le plus
@@ -53,17 +53,37 @@ export function BulleMessage({
   onEditer,
   onLike,
   onDislike,
+  onExpliquerSelection,
 }: {
   message: MessageAffiche;
   onRegenerer?: () => void;
   onEditer?: (nouveauTexte: string) => void;
   onLike?: () => void;
   onDislike?: () => void;
+  onExpliquerSelection?: (texteSelectionne: string) => void;
 }) {
   const [copie, setCopie] = useState(false);
   const [enEdition, setEnEdition] = useState(false);
   const [texteEdition, setTexteEdition] = useState(message.content);
   const estUtilisateur = message.role === "user";
+
+  // Sélection de texte -> "expliquer ce passage" (2026-07-20). Signal
+  // utilisateur non textuel : on capte la sélection native du navigateur
+  // dans la bulle assistant, pas un nouveau composant de sélection custom.
+  const conteneurRef = useRef<HTMLDivElement>(null);
+  const [selection, setSelection] = useState<{ texte: string; x: number; y: number } | null>(null);
+
+  function gererFinSelection() {
+    if (!onExpliquerSelection || estUtilisateur) return;
+    const sel = window.getSelection();
+    const texte = sel?.toString().trim();
+    if (!sel || !texte || sel.rangeCount === 0 || !conteneurRef.current?.contains(sel.anchorNode)) {
+      setSelection(null);
+      return;
+    }
+    const rect = sel.getRangeAt(0).getBoundingClientRect();
+    setSelection({ texte, x: rect.left + rect.width / 2, y: rect.top });
+  }
 
   function copier() {
     navigator.clipboard.writeText(message.content).then(() => {
@@ -123,7 +143,11 @@ export function BulleMessage({
             règle définitivement le bug hérité de Streamlit (bloc HTML brut
             qui empêchait toute transformation Markdown). Couleur des liens
             fixée sur l'accent de la charte, jamais bleu (voir 1.2). */}
-        <div className="dj-markdown [&_a]:text-dj-accent-1 [&_a]:underline [&_a:hover]:text-dj-accent-2 [&_table]:my-2 [&_td]:border [&_td]:border-dj-bordure [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-dj-bordure [&_th]:px-2 [&_th]:py-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 last:[&_p]:mb-0 [&_h1]:font-display [&_h1]:font-bold [&_h1]:tracking-[-0.01em] [&_h1]:text-dj-texte [&_h1]:text-xl [&_h1]:mb-2 [&_h1]:mt-3 [&_h2]:font-display [&_h2]:font-bold [&_h2]:tracking-[-0.01em] [&_h2]:text-dj-texte [&_h2]:text-lg [&_h2]:mb-2 [&_h2]:mt-3 [&_h3]:font-display [&_h3]:font-bold [&_h3]:tracking-[-0.01em] [&_h3]:text-dj-texte [&_h3]:text-base [&_h3]:mb-1.5 [&_h3]:mt-2">
+        <div
+          ref={conteneurRef}
+          onMouseUp={gererFinSelection}
+          className="dj-markdown [&_a]:text-dj-accent-1 [&_a]:underline [&_a:hover]:text-dj-accent-2 [&_table]:my-2 [&_td]:border [&_td]:border-dj-bordure [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-dj-bordure [&_th]:px-2 [&_th]:py-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 last:[&_p]:mb-0 [&_h1]:font-display [&_h1]:font-bold [&_h1]:tracking-[-0.01em] [&_h1]:text-dj-texte [&_h1]:text-xl [&_h1]:mb-2 [&_h1]:mt-3 [&_h2]:font-display [&_h2]:font-bold [&_h2]:tracking-[-0.01em] [&_h2]:text-dj-texte [&_h2]:text-lg [&_h2]:mb-2 [&_h2]:mt-3 [&_h3]:font-display [&_h3]:font-bold [&_h3]:tracking-[-0.01em] [&_h3]:text-dj-texte [&_h3]:text-base [&_h3]:mb-1.5 [&_h3]:mt-2"
+        >
           {/* remarkGfm (tableaux/gras/liens) + remarkMath/rehypeKatex
               (LaTeX) tournent dans LA MÊME passe de parsing -- c'est ça
               qui évite le jeu de whack-a-mole où corriger le gras/les
@@ -137,6 +161,24 @@ export function BulleMessage({
             {normaliserLatex(message.content)}
           </ReactMarkdown>
         </div>
+
+        {/* Bulle flottante "Expliquer" -- apparaît uniquement sur une
+            sélection de texte dans une réponse assistant. position:fixed,
+            calée sur la sélection native du navigateur. */}
+        {selection && (
+          <button
+            onClick={() => {
+              onExpliquerSelection?.(selection.texte);
+              setSelection(null);
+              window.getSelection()?.removeAllRanges();
+            }}
+            style={{ left: selection.x, top: selection.y - 40 }}
+            className="fixed z-20 -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-dj-gradient px-3 py-1.5 text-xs font-semibold text-[#1A0D02] shadow-lg"
+          >
+            <MessageSquareQuote size={13} />
+            Expliquer
+          </button>
+        )}
       </div>
 
       {/* Heure : uniquement sous le message utilisateur (correction du
