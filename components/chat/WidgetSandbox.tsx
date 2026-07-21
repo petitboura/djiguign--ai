@@ -53,8 +53,37 @@ export function WidgetSandbox({ code }: { code: string }) {
       table{border-collapse:collapse;}
       td,th{border:1px solid rgba(255,255,255,0.14);padding:4px 8px;}
       a{color:#E8934A;}
+      #dj-erreur-widget{
+        display:none;margin-bottom:10px;padding:8px 10px;border-radius:8px;
+        background:rgba(220,60,50,0.15);border:1px solid rgba(220,60,50,0.4);
+        color:#F5ECE0;font-size:12px;font-family:monospace;white-space:pre-wrap;
+      }
     </style>
-    </head><body>${code}</body></html>`;
+    </head><body>
+    <div id="dj-erreur-widget"></div>
+    ${code}
+    <script>
+      // Sans ça, un widget qui casse (script.src externe bloqué,
+      // erreur de syntaxe, référence à une variable inexistante...)
+      // échoue en silence : le clic ne fait rien, aucun indice pour
+      // diagnostiquer. Trouvé sur plusieurs widgets réels (2026-07-20)
+      // où "rien ne se passe" cachait des causes différentes à chaque
+      // fois -- ce bandeau rend l'erreur visible directement.
+      (function () {
+        var conteneur = document.getElementById('dj-erreur-widget');
+        function afficher(texte) {
+          conteneur.textContent = 'Erreur dans le widget : ' + texte;
+          conteneur.style.display = 'block';
+        }
+        window.onerror = function (message, source, ligne) {
+          afficher(message + (ligne ? ' (ligne ' + ligne + ')' : ''));
+        };
+        window.addEventListener('unhandledrejection', function (e) {
+          afficher(String(e.reason));
+        });
+      })();
+    </script>
+    </body></html>`;
 
   return (
     <div className="my-3 overflow-hidden rounded-xl border border-dj-bordure bg-dj-surface">
