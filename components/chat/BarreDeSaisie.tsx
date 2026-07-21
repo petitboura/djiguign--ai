@@ -80,8 +80,12 @@ export function BarreDeSaisie({
           const fichierAudio = new File([blob], "dictee.webm", { type: blob.type });
           const { texte: transcrit } = await transcrireAudioChat(fichierAudio);
           setTexte((prec) => (prec.trim() ? `${prec} ${transcrit}` : transcrit));
-        } catch {
-          alert("Je n'ai pas compris, réessaie.");
+        } catch (e) {
+          // Message générique remplacé le 2026-07-20 : masquait la vraie
+          // cause (non connecté / audio vide-silencieux / vraie erreur
+          // serveur) derrière un seul texte, impossible à diagnostiquer
+          // depuis le retour utilisateur.
+          alert(e instanceof Error ? e.message : "Je n'ai pas compris, réessaie.");
         } finally {
           setTranscriptionEnCours(false);
         }
