@@ -29,6 +29,30 @@ export function WidgetSandbox({ code }: { code: string }) {
       html,body{margin:0;padding:12px;background:#161210;color:#F5ECE0;
         font-family:Inter,system-ui,sans-serif;}
       *{box-sizing:border-box;}
+      /* Style par défaut pour tout champ/bouton généré sans CSS propre --
+         sans ça, un input/button hérite du blanc par défaut du
+         navigateur, qui jure avec le reste de l'interface (repéré par
+         Bourama sur un widget "solveur d'équations" avec des champs
+         blancs au milieu d'une carte sombre). Le modèle peut toujours
+         écraser ces règles avec son propre <style>, ceci n'est qu'un
+         filet de sécurité. */
+      input, select, textarea{
+        background:#1E1813;color:#F5ECE0;border:1px solid rgba(255,255,255,0.14);
+        border-radius:8px;padding:6px 10px;font:inherit;font-size:14px;
+      }
+      input:focus, select:focus, textarea:focus{
+        outline:none;border-color:#E8934A;
+      }
+      button{
+        background:linear-gradient(135deg,#F2A65A 0%,#D9631F 55%,#8A2E0A 100%);
+        color:#1A0D02;border:none;border-radius:8px;padding:7px 14px;
+        font:inherit;font-size:14px;font-weight:600;cursor:pointer;
+      }
+      button:hover{filter:brightness(1.08);}
+      button:active{filter:brightness(0.95);}
+      table{border-collapse:collapse;}
+      td,th{border:1px solid rgba(255,255,255,0.14);padding:4px 8px;}
+      a{color:#E8934A;}
     </style>
     </head><body>${code}</body></html>`;
 
