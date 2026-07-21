@@ -5,6 +5,8 @@ import { appelerApiStream, uploaderImageChat, uploaderDocumentChat, uploaderVide
 import { BulleMessage, MessageAffiche } from "./BulleMessage";
 import { BarreDeSaisie, LongueurReponse, LocalisationJointe } from "./BarreDeSaisie";
 import { PopupFeedback } from "./PopupFeedback";
+import { StatutOutil, EtatStatut } from "./StatutOutil";
+import { ConfirmationOutil } from "./ConfirmationOutil";
 
 // Page de chat qui remplace chat.py (Streamlit) -- voir
 // MIGRATION_CHAT_VERS_NEXTJS.md, section 0 et phase 2. Consomme la
@@ -35,6 +37,13 @@ export function ChatIA({
 }) {
   const [messages, setMessages] = useState<MessageAffiche[]>(messagesInitiaux);
   const [genEnCours, setGenEnCours] = useState(false);
+  const [statuts, setStatuts] = useState<{ texte: string; etat: EtatStatut }[]>([]);
+  const [confirmation, setConfirmation] = useState<{
+    nomLisible: string;
+    arguments: Record<string, unknown>;
+    etatReprise: unknown;
+  } | null>(null);
+  const [confirmationEnAttente, setConfirmationEnAttente] = useState(false);
   const [popupFeedback, setPopupFeedback] = useState<{
     type: "positif" | "negatif";
     messageId: number;
@@ -47,6 +56,60 @@ export function ChatIA({
       onMessagesChange?.(suivant.length);
       return suivant;
     });
+  }
+
+  // Partagé entre l'envoi normal (envoyerMessage) et la reprise après
+  // confirmation (repriseApresConfirmation) -- même flux d'événements SSE
+  // dans les deux cas (voir core/main.py:chat(), docstring).
+  function traiterEvenement(evenement: any) {
+    if (evenement.type === "reponse") {
+      // Le texte de la réponse arrive : la phase "outils" est terminée,
+      // on efface les indicateurs de statut plutôt que de les laisser
+      // traîner sous la réponse qui commence à s'afficher.
+      setStatuts([]);
+      majMessages((prec) => {
+        const copie = [...prec];
+        const dernier = copie[copie.length - 1];
+        copie[copie.length - 1] = { ...dernier, content: dernier.content + evenement.texte };
+        return copie;
+      });
+    } else if (evenement.type === "meta") {
+      majMessages((prec) => {
+        const copie = [...prec];
+        const iAssistant = copie.length - 1;
+        const iUser = copie.length - 2;
+        copie[iAssistant] = {
+          ...copie[iAssistant],
+          id: evenement.message_id_assistant,
+          created_at: evenement.created_at_assistant,
+        };
+        if (iUser >= 0) copie[iUser] = { ...copie[iUser], id: evenement.message_id_user };
+        return copie;
+      });
+    } else if (evenement.type === "statut") {
+      setStatuts((prec) => [...prec, { texte: evenement.texte, etat: "en_cours" as EtatStatut }]);
+    } else if (evenement.type === "statut_termine") {
+      // Met à jour le dernier statut "en_cours" plutôt que d'en empiler un
+      // nouveau -- voir StatutOutil.tsx, transition douce entre les deux
+      // états (jamais un remplacement sec).
+      setStatuts((prec) => {
+        const copie = [...prec];
+        const iDernierEnCours = [...copie].reverse().findIndex((s) => s.etat === "en_cours");
+        if (iDernierEnCours === -1) {
+          copie.push({ texte: evenement.texte, etat: "termine" });
+        } else {
+          const i = copie.length - 1 - iDernierEnCours;
+          copie[i] = { texte: evenement.texte, etat: evenement.texte.includes("annulée") ? "annule" : "termine" };
+        }
+        return copie;
+      });
+    } else if (evenement.type === "confirmation_requise") {
+      setConfirmation({
+        nomLisible: evenement.nom_lisible,
+        arguments: evenement.arguments || {},
+        etatReprise: evenement.etat_reprise,
+      });
+    }
   }
 
   async function envoyerMessage(
@@ -65,6 +128,8 @@ export function ChatIA({
 
     majMessages((prec) => [...prec, messageUtilisateur, { id: null, role: "assistant", content: "" }]);
     setGenEnCours(true);
+    setStatuts([]);
+    setConfirmation(null);
 
     // Upload/traitement du fichier AVANT le message texte :
     // - image -> /api/chat a besoin de l'URL finale dans image_url (voir
@@ -138,32 +203,7 @@ export function ChatIA({
           // core/main.py:chat(), paramètre fuseau_horaire.
           fuseau_horaire: Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
-        (evenement) => {
-          if (evenement.type === "reponse") {
-            majMessages((prec) => {
-              const copie = [...prec];
-              const dernier = copie[copie.length - 1];
-              copie[copie.length - 1] = { ...dernier, content: dernier.content + evenement.texte };
-              return copie;
-            });
-          } else if (evenement.type === "meta") {
-            majMessages((prec) => {
-              const copie = [...prec];
-              const iAssistant = copie.length - 1;
-              const iUser = copie.length - 2;
-              copie[iAssistant] = {
-                ...copie[iAssistant],
-                id: evenement.message_id_assistant,
-                created_at: evenement.created_at_assistant,
-              };
-              if (iUser >= 0) copie[iUser] = { ...copie[iUser], id: evenement.message_id_user };
-              return copie;
-            });
-          }
-          // "statut" / "statut_termine" / "confirmation_requise" : pas
-          // encore affichés dans cette première version de la page --
-          // suivi en Phase 4 (branchement progressif).
-        }
+        (evenement) => traiterEvenement(evenement)
       );
     } catch (e) {
       majMessages((prec) => {
@@ -203,6 +243,32 @@ export function ChatIA({
     envoyerMessage(`Peux-tu expliquer ce passage : "${texteSelectionne}"`, "moyenne", null);
   }
 
+  async function repriseApresConfirmation(approuve: boolean) {
+    if (!confirmation) return;
+    setConfirmationEnAttente(true);
+    setGenEnCours(true);
+    try {
+      await appelerApiStream(
+        "/api/chat",
+        { reprise: { etat_reprise: confirmation.etatReprise, approuve } },
+        (evenement) => traiterEvenement(evenement)
+      );
+    } catch (e) {
+      majMessages((prec) => {
+        const copie = [...prec];
+        copie[copie.length - 1] = {
+          ...copie[copie.length - 1],
+          content: "Une erreur est survenue, réessaie dans un instant.",
+        };
+        return copie;
+      });
+    } finally {
+      setConfirmation(null);
+      setConfirmationEnAttente(false);
+      setGenEnCours(false);
+    }
+  }
+
   return (
     <div className="mx-auto flex h-full w-full max-w-3xl flex-col">
       <div className="flex-1 space-y-5 overflow-y-auto px-4 py-6">
@@ -239,6 +305,24 @@ export function ChatIA({
             onExpliquerSelection={message.role === "assistant" ? expliquerSelection : undefined}
           />
         ))}
+
+        {statuts.length > 0 && (
+          <div className="max-w-[80%]">
+            {statuts.map((s, i) => (
+              <StatutOutil key={i} texte={s.texte} etat={s.etat} />
+            ))}
+          </div>
+        )}
+
+        {confirmation && (
+          <ConfirmationOutil
+            nomLisible={confirmation.nomLisible}
+            arguments={confirmation.arguments}
+            enAttente={confirmationEnAttente}
+            onConfirmer={() => repriseApresConfirmation(true)}
+            onAnnuler={() => repriseApresConfirmation(false)}
+          />
+        )}
       </div>
 
       <div className="px-4 pb-6">
