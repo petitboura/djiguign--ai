@@ -169,16 +169,22 @@ export function ChatIA({
             `${texte}\n\n[Document joint : ${fichier.name}${tronque ? " (tronqué)" : ""}]\n${texteDocument}`;
         }
       } catch (e) {
+        // Même correction que pour la dictée vocale (2026-07-20) : le
+        // message générique masquait la vraie cause (format refusé,
+        // fichier trop lourd, erreur serveur précise...) derrière un seul
+        // texte, impossible à diagnostiquer depuis le retour utilisateur.
+        const detail = e instanceof Error ? e.message : null;
+        const prefixe =
+          typeFichier === "image"
+            ? "Je n'ai pas pu envoyer l'image jointe"
+            : typeFichier === "video"
+            ? "Je n'ai pas pu traiter la vidéo jointe"
+            : "Je n'ai pas pu lire le document joint";
         majMessages((prec) => {
           const copie = [...prec];
           copie[copie.length - 1] = {
             ...copie[copie.length - 1],
-            content:
-              typeFichier === "image"
-                ? "Je n'ai pas pu envoyer l'image jointe, réessaie."
-                : typeFichier === "video"
-                ? "Je n'ai pas pu traiter la vidéo jointe, réessaie."
-                : "Je n'ai pas pu lire le document joint, réessaie.",
+            content: detail ? `${prefixe} : ${detail}` : `${prefixe}, réessaie.`,
           };
           return copie;
         });
