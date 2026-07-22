@@ -17,6 +17,7 @@ import { WidgetSandbox } from "./WidgetSandbox";
 import { ImageMessage } from "./ImageMessage";
 import { TableauMessage } from "./TableauMessage";
 import { FichierChip, extensionFichier } from "./FichierChip";
+import { FichierCode, extensionCode } from "./FichierCode";
 import { LecteurMedia, typeMedia } from "./LecteurMedia";
 import { LinkPreview } from "./LinkPreview";
 
@@ -264,6 +265,9 @@ export function BulleMessage({
                 if (!href) return <>{children}</>;
                 const media = typeMedia(href);
                 if (media) return <LecteurMedia href={href} type={media} />;
+                if (extensionCode(href)) {
+                  return <FichierCode href={href} nom={texteBrut(children) || href} />;
+                }
                 if (extensionFichier(href)) {
                   return <FichierChip href={href} nom={texteBrut(children) || href} />;
                 }
