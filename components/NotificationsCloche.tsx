@@ -356,25 +356,40 @@ export function NotificationsCloche() {
 function PopupDetailFeedback({ n, onFermer }: { n: NotificationItem; onFermer: () => void }) {
   const negatif = n.feedback_type === "negatif";
   return (
-    <>
-      <div className="fixed inset-0 z-[60] bg-black/50" onClick={onFermer} />
-      <div className="fixed left-1/2 top-1/2 z-[70] w-[90vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-dj-bordure bg-dj-surface p-4 shadow-xl">
-        <div className="mb-3 flex items-center justify-between">
-          <span className="text-sm font-bold text-dj-texte">
-            {negatif ? "👎 Retour négatif" : "👍 Retour positif"} sur {n.agent_nom ?? "ton IA"}
-          </span>
-          <button
-            type="button"
-            onClick={onFermer}
-            aria-label="Fermer"
-            className="text-dj-texte-muet transition-colors hover:text-dj-texte"
-          >
-            ✕
-          </button>
-        </div>
-
+    // Réutilise PleinEcran (portail vers document.body + z-[100]) au lieu
+    // d'un modal maison -- corrige 2 bugs signalés le 2026-07-21 :
+    // (1) sans portail, un `position: fixed` piégé dans un parent avec
+    // transform/overflow-hidden s'affichait coupé en haut d'écran ;
+    // (2) mon z-[60]/[70] précédent était SOUS le z-[100] de la vue
+    // plein écran des notifications -- invisible quand ouvert par-dessus.
+    <PleinEcran
+      ouvert
+      onFermer={onFermer}
+      titre={`${negatif ? "👎 Retour négatif" : "👍 Retour positif"} sur ${n.agent_nom ?? "ton IA"}`}
+      actions={
+        n.agent_id ? (
+          <>
+            <Link
+              href={`/dashboard/agents/${n.agent_id}/modifier`}
+              onClick={onFermer}
+              className="rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
+            >
+              Modifier {n.agent_nom ?? "l'IA"}
+            </Link>
+            <Link
+              href={`/agent/${n.agent_id}/chat`}
+              onClick={onFermer}
+              className="rounded-full bg-dj-gradient px-4 py-2 text-sm font-semibold text-[#1A0D02]"
+            >
+              Ouvrir {n.agent_nom ?? "l'IA"}
+            </Link>
+          </>
+        ) : undefined
+      }
+    >
+      <div className="space-y-3 p-4">
         {n.feedback_commentaire && (
-          <div className="mb-3">
+          <div>
             <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-dj-texte-muet">Commentaire</p>
             <p className="rounded-lg bg-dj-surface-haute px-3 py-2 text-sm text-dj-texte">
               {n.feedback_commentaire}
@@ -387,7 +402,7 @@ function PopupDetailFeedback({ n, onFermer }: { n: NotificationItem; onFermer: (
             feedback_reponse, remplis côté backend UNIQUEMENT quand
             l'étudiant a explicitement coché le partage. */}
         {n.feedback_question && (
-          <div className="mb-3">
+          <div>
             <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-dj-texte-muet">
               Question posée
             </p>
@@ -408,16 +423,10 @@ function PopupDetailFeedback({ n, onFermer }: { n: NotificationItem; onFermer: (
           </div>
         )}
 
-        {n.agent_id && (
-          <Link
-            href={`/agent/${n.agent_id}`}
-            onClick={onFermer}
-            className="mt-4 block text-center text-xs text-dj-accent-1 transition-colors hover:text-dj-accent-2"
-          >
-            Voir la page de {n.agent_nom ?? "l'IA"}
-          </Link>
+        {!n.feedback_commentaire && !n.feedback_question && !n.feedback_reponse && (
+          <p className="text-sm text-dj-texte-muet">Aucun détail supplémentaire pour ce retour.</p>
         )}
       </div>
-    </>
+    </PleinEcran>
   );
 }
