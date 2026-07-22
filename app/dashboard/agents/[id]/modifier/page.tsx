@@ -34,6 +34,7 @@ type AgentEditable = {
   placeholder_saisie: string;
   actif: boolean;
   categorie_id: string | null;
+  profil_utilisateur_schema: { nom: string; description: string }[];
 };
 
 type DocumentIndexe = { nom_stockage: string; nom_affiche: string; url: string };
@@ -76,6 +77,23 @@ export default function PageModifierAgent() {
   const [categorie, setCategorie] = useState<Categorie | null>(null);
   const [popupCategorieOuvert, setPopupCategorieOuvert] = useState(false);
 
+  // Même fonctionnalité que la page de création (2026-07-21), voir
+  // ChampProfilUtilisateur côté api/agents.py.
+  const [profilChamps, setProfilChamps] = useState<
+    { nom: string; description: string }[]
+  >([]);
+  function ajouterChampProfil() {
+    setProfilChamps((prev) => [...prev, { nom: "", description: "" }]);
+  }
+  function majChampProfil(i: number, champ: "nom" | "description", valeur: string) {
+    setProfilChamps((prev) =>
+      prev.map((c, idx) => (idx === i ? { ...c, [champ]: valeur } : c))
+    );
+  }
+  function supprimerChampProfil(i: number) {
+    setProfilChamps((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
   const [documents, setDocuments] = useState<DocumentIndexe[] | null>(null);
   const [nouveauPdf, setNouveauPdf] = useState<File | null>(null);
   const [envoiPdf, setEnvoiPdf] = useState(false);
@@ -115,6 +133,7 @@ export default function PageModifierAgent() {
         setLienNotion(r.notion_page_id || "");
         setTexteLibre(r.texte_libre || "");
         setActif(r.actif);
+        setProfilChamps(r.profil_utilisateur_schema || []);
         if (r.categorie_id) {
           const idCategorie = r.categorie_id;
           chargerCategories()
@@ -165,6 +184,9 @@ export default function PageModifierAgent() {
           placeholder_saisie: placeholderSaisie,
           actif,
           categorie_id: categorie?.id,
+          profil_utilisateur_schema: profilChamps
+            .filter((c) => c.nom.trim())
+            .map((c) => ({ nom: c.nom.trim(), description: c.description.trim() })),
         }),
       });
       setMessage("IA mise à jour.");
@@ -450,6 +472,61 @@ export default function PageModifierAgent() {
                 />
               </div>
             )}
+          </section>
+
+          <section className="flex flex-col gap-4 rounded-2xl border border-dj-bordure bg-dj-surface p-6">
+            <h2 className="font-display text-base font-bold text-dj-texte">
+              Profil utilisateur
+            </h2>
+            <p className="text-sm text-dj-texte-muet">
+              Informations que ton IA retient automatiquement sur les personnes qui
+              lui parlent (utilisateurs connectés). Vide = fonctionnalité désactivée.
+            </p>
+
+            {profilChamps.map((champ, i) => (
+              <div
+                key={i}
+                className="flex flex-col gap-2 rounded-xl border border-dj-bordure bg-dj-surface-haute p-4 sm:flex-row sm:items-start"
+              >
+                <div className="flex-1">
+                  <label className="text-xs font-semibold text-dj-texte-muet">
+                    Nom du champ
+                  </label>
+                  <input
+                    value={champ.nom}
+                    onChange={(e) => majChampProfil(i, "nom", e.target.value)}
+                    placeholder="Ex: niveau_scolaire"
+                    className={champClasse}
+                  />
+                </div>
+                <div className="flex-[2]">
+                  <label className="text-xs font-semibold text-dj-texte-muet">
+                    Description (guide l&apos;IA sur quoi chercher)
+                  </label>
+                  <input
+                    value={champ.description}
+                    onChange={(e) => majChampProfil(i, "description", e.target.value)}
+                    placeholder="Ex: Niveau étudié actuellement (collège, lycée, prépa...)"
+                    className={champClasse}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => supprimerChampProfil(i)}
+                  className="mt-1 self-start rounded-full border border-dj-bordure px-3 py-2 text-xs text-dj-texte-muet transition-colors hover:border-[#F87171] hover:text-[#F87171] sm:mt-6"
+                >
+                  Retirer
+                </button>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={ajouterChampProfil}
+              className="self-start rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
+            >
+              + Ajouter un champ
+            </button>
           </section>
 
           {erreur && <p className="text-sm text-[#F87171]">{erreur}</p>}

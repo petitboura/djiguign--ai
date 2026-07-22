@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronsLeft, ChevronsRight, ArrowLeft, MessageSquarePlus, History, Star, Share2 } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, ArrowLeft, MessageSquarePlus, History, Star, Share2, UserCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { appelerApi } from "@/lib/api";
 import { NoteAgent } from "@/components/NoteAgent";
 import { CommentairesAgent } from "@/components/CommentairesAgent";
 import { BoutonInstaller } from "@/components/BoutonInstaller";
+import { MonProfilAgent } from "@/components/MonProfilAgent";
 
 // Reproduit la sidebar de faces/vues/chat.py (Streamlit) dans le chat
 // Next.js -- demande de Bourama (2026-07-16) : "comme si j'avais pas
@@ -56,6 +57,8 @@ export function SidebarChat({
   const [fils, setFils] = useState<FilConversation[] | null>(null);
   const [historiqueDeplie, setHistoriqueDeplie] = useState(false);
   const [avisDeplie, setAvisDeplie] = useState(false);
+  const [profilDeplie, setProfilDeplie] = useState(false);
+  const [profilADesChamps, setProfilADesChamps] = useState(false);
   const [copie, setCopie] = useState(false);
   const asideRef = useRef<HTMLElement>(null);
   const boutonBasculeRef = useRef<HTMLButtonElement>(null);
@@ -210,6 +213,27 @@ export function SidebarChat({
               </div>
             </div>
           </div>
+
+          {connecte && (
+            <div className={`rounded-xl border border-dj-bordure ${profilADesChamps ? "" : "hidden"}`}>
+              <button
+                onClick={() => setProfilDeplie((v) => !v)}
+                className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-dj-texte"
+              >
+                <UserCircle size={16} />
+                Mon profil
+              </button>
+              <div
+                className={`grid transition-[grid-template-rows] duration-300 ease-out ${
+                  profilDeplie ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <MonProfilAgent agentId={agentId} onEtat={setProfilADesChamps} />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="mt-auto flex justify-center">
             <BoutonInstaller />

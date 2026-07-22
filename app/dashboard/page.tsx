@@ -203,6 +203,13 @@ export default function PageDashboard() {
               Modifier le profil
             </Link>
 
+            <Link
+              href="/dashboard/memoire"
+              className="rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
+            >
+              Ma mémoire
+            </Link>
+
             {BOUTONS_ESPACE.map((libelle) => (
               <button
                 key={libelle}
