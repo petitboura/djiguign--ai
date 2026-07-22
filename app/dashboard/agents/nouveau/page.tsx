@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { appelerApi, appelerApiFichier } from "@/lib/api";
+import { proposerNotificationsPushUneFois, useNotificationsPush } from "@/lib/useNotificationsPush";
 import { TopBar } from "@/components/TopBar";
 import { BoutonRetour } from "@/components/BoutonRetour";
 import { BoutonAccueil } from "@/components/BoutonAccueil";
@@ -46,6 +47,7 @@ export default function PageCreerAgent() {
   >(undefined);
 
   const [nom, setNom] = useState("");
+  const { activer: activerNotificationsPush } = useNotificationsPush();
   const [iconePage, setIconePage] = useState("🤖");
   // Point 5 (2026-07-14, Bourama : "il n'y a pas de section pour modifier
   // le texte qui s'affiche dans la barre de saisie") -- déjà lu par
@@ -115,6 +117,11 @@ export default function PageCreerAgent() {
   async function gererSoumission(e: React.FormEvent) {
     e.preventDefault();
     setErreur(null);
+
+    // Demande de Bourama (2026-07-22) : proposer l'activation des
+    // notifications push dès l'appui sur "créer son IA", même logique
+    // et même garde-fou "une fois par appareil" que dans ChatIA.tsx.
+    proposerNotificationsPushUneFois(activerNotificationsPush);
 
     if (!nom.trim()) {
       setErreur("Le nom de l'IA est obligatoire.");
