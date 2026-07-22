@@ -146,7 +146,12 @@ export async function appelerApiFichier(chemin: string, fichier: File) {
  * Distincte de appelerApiFichier : celle-ci envoie un champ "titre" en
  * plus du fichier dans le FormData.
  */
-export async function ajouterFichierBibliotheque(agentId: string, fichier: File, titre: string) {
+export async function ajouterFichierBibliotheque(
+  agentId: string,
+  fichier: File,
+  description: string,
+  titre?: string
+) {
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -157,7 +162,8 @@ export async function ajouterFichierBibliotheque(agentId: string, fichier: File,
 
   const corps = new FormData();
   corps.append("fichier", fichier);
-  corps.append("titre", titre);
+  if (titre?.trim()) corps.append("titre", titre.trim());
+  corps.append("description", description);
 
   const reponse = await fetch(`${API_URL}/api/agents/${agentId}/bibliotheque`, {
     method: "POST",

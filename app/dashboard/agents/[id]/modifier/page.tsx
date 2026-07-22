@@ -83,6 +83,7 @@ export default function PageModifierAgent() {
   const [fichiersBiblio, setFichiersBiblio] = useState<FichierBiblio[] | null>(null);
   const [nouveauFichierBiblio, setNouveauFichierBiblio] = useState<File | null>(null);
   const [titreFichierBiblio, setTitreFichierBiblio] = useState("");
+  const [descriptionFichierBiblio, setDescriptionFichierBiblio] = useState("");
   const [envoiBiblio, setEnvoiBiblio] = useState(false);
 
   const [enregistrement, setEnregistrement] = useState(false);
@@ -201,12 +202,18 @@ export default function PageModifierAgent() {
   }
 
   async function ajouterFichierBiblio() {
-    if (!nouveauFichierBiblio || !titreFichierBiblio.trim()) return;
+    if (!nouveauFichierBiblio || !descriptionFichierBiblio.trim()) return;
     setEnvoiBiblio(true);
     try {
-      await ajouterFichierBibliotheque(agentId, nouveauFichierBiblio, titreFichierBiblio.trim());
+      await ajouterFichierBibliotheque(
+        agentId,
+        nouveauFichierBiblio,
+        descriptionFichierBiblio.trim(),
+        titreFichierBiblio.trim()
+      );
       setNouveauFichierBiblio(null);
       setTitreFichierBiblio("");
+      setDescriptionFichierBiblio("");
       chargerBibliotheque();
     } catch (e) {
       window.alert(e instanceof Error ? e.message : "Échec de l'ajout du fichier.");
@@ -550,28 +557,37 @@ export default function PageModifierAgent() {
             </div>
           )}
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <input
-              type="text"
-              placeholder="Titre du fichier (ex : Vidéo de présentation)"
-              value={titreFichierBiblio}
-              onChange={(e) => setTitreFichierBiblio(e.target.value)}
-              className="rounded-full border border-dj-bordure bg-dj-surface px-4 py-2 text-sm text-dj-texte outline-none focus:border-dj-bordure-forte sm:flex-1"
+          <div className="flex flex-col gap-3">
+            <textarea
+              placeholder="Description (obligatoire) : de quoi parle ce fichier, dans quel contexte l'IA doit le proposer ?"
+              value={descriptionFichierBiblio}
+              onChange={(e) => setDescriptionFichierBiblio(e.target.value)}
+              rows={2}
+              className="rounded-2xl border border-dj-bordure bg-dj-surface px-4 py-2 text-sm text-dj-texte outline-none focus:border-dj-bordure-forte"
             />
-            <input
-              type="file"
-              accept="application/pdf,image/jpeg,image/png,image/webp,audio/mpeg,audio/wav,audio/ogg,video/mp4,video/webm,video/quicktime"
-              onChange={(e) => setNouveauFichierBiblio(e.target.files?.[0] ?? null)}
-              className="text-sm text-dj-texte file:mr-3 file:rounded-full file:border file:border-dj-bordure file:bg-dj-surface-haute file:px-4 file:py-2 file:text-xs file:text-dj-texte hover:file:border-dj-bordure-forte"
-            />
-            <button
-              type="button"
-              onClick={ajouterFichierBiblio}
-              disabled={!nouveauFichierBiblio || !titreFichierBiblio.trim() || envoiBiblio}
-              className="rounded-full border border-dj-bordure px-4 py-2 text-xs text-dj-texte transition-colors hover:border-dj-bordure-forte disabled:opacity-50"
-            >
-              {envoiBiblio ? "Envoi…" : "Ajouter"}
-            </button>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <input
+                type="text"
+                placeholder="Titre (optionnel)"
+                value={titreFichierBiblio}
+                onChange={(e) => setTitreFichierBiblio(e.target.value)}
+                className="rounded-full border border-dj-bordure bg-dj-surface px-4 py-2 text-sm text-dj-texte outline-none focus:border-dj-bordure-forte sm:w-1/3"
+              />
+              <input
+                type="file"
+                accept="application/pdf,image/jpeg,image/png,image/webp,audio/mpeg,audio/wav,audio/ogg,video/mp4,video/webm,video/quicktime"
+                onChange={(e) => setNouveauFichierBiblio(e.target.files?.[0] ?? null)}
+                className="text-sm text-dj-texte file:mr-3 file:rounded-full file:border file:border-dj-bordure file:bg-dj-surface-haute file:px-4 file:py-2 file:text-xs file:text-dj-texte hover:file:border-dj-bordure-forte"
+              />
+              <button
+                type="button"
+                onClick={ajouterFichierBiblio}
+                disabled={!nouveauFichierBiblio || !descriptionFichierBiblio.trim() || envoiBiblio}
+                className="rounded-full border border-dj-bordure px-4 py-2 text-xs text-dj-texte transition-colors hover:border-dj-bordure-forte disabled:opacity-50"
+              >
+                {envoiBiblio ? "Envoi…" : "Ajouter"}
+              </button>
+            </div>
           </div>
         </section>
 
