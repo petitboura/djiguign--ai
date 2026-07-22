@@ -1,4 +1,4 @@
-import { FileText, FileSpreadsheet, Presentation, File, Download } from "lucide-react";
+import { FileText, FileSpreadsheet, Presentation, FileArchive, FileJson, FileCode, Image, Box, File, Download } from "lucide-react";
 
 const EXTENSIONS_FICHIER: Record<string, { icone: typeof File; libelle: string }> = {
   pdf: { icone: FileText, libelle: "PDF" },
@@ -9,6 +9,24 @@ const EXTENSIONS_FICHIER: Record<string, { icone: typeof File; libelle: string }
   csv: { icone: FileSpreadsheet, libelle: "CSV" },
   ppt: { icone: Presentation, libelle: "PowerPoint" },
   pptx: { icone: Presentation, libelle: "PowerPoint" },
+  // Archives (bundles, code, sites générés en zip -- voir
+  // core/generation_code.py, generation_archives.py, generation_site.py)
+  zip: { icone: FileArchive, libelle: "Archive ZIP" },
+  // Données structurées (voir generation_donnees.py)
+  json: { icone: FileJson, libelle: "JSON" },
+  xml: { icone: FileCode, libelle: "XML" },
+  // Images en lien direct, pas en syntaxe markdown ![]() -- ce second cas
+  // passe déjà par le renderer `img` de BulleMessage.tsx, pas par ici
+  // (voir generation_images.py)
+  png: { icone: Image, libelle: "Image" },
+  jpg: { icone: Image, libelle: "Image" },
+  jpeg: { icone: Image, libelle: "Image" },
+  webp: { icone: Image, libelle: "Image" },
+  // Modèles 3D (voir generation_3d.py). L'audio (mp3/wav) et la vidéo
+  // (mp4/webm) ne sont volontairement PAS ici : LecteurMedia.tsx (voir
+  // typeMedia() dans BulleMessage.tsx) les intercepte avant d'arriver
+  // jusqu'ici, un ajout ici serait du code mort.
+  glb: { icone: Box, libelle: "Modèle 3D" },
 };
 
 // Détecte si un lien markdown pointe vers un fichier "document" (PDF,
