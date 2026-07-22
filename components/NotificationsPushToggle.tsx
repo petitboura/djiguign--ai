@@ -23,7 +23,14 @@ function urlBase64ToUint8Array(base64String: string) {
   return tableau;
 }
 
-type Etat = "verification" | "indisponible" | "refuse" | "inactif" | "actif" | "changement";
+type Etat =
+  | "verification"
+  | "indisponible"
+  | "service_worker_bloque"
+  | "refuse"
+  | "inactif"
+  | "actif"
+  | "changement";
 
 export function NotificationsPushToggle() {
   const [etat, setEtat] = useState<Etat>("verification");
@@ -43,11 +50,23 @@ export function NotificationsPushToggle() {
       return;
     }
     try {
-      const registration = await navigator.serviceWorker.ready;
+      // Garde-fou : navigator.serviceWorker.ready ne se résout QUE si un
+      // service worker devient actif. Si l'enregistrement (voir
+      // ServiceWorkerRegistration.tsx) a échoué ou traîne, cette promesse
+      // ne se résout jamais -- sans timeout, le composant restait bloqué
+      // sur `etat === "verification"` pour toujours, donc RIEN ne
+      // s'affichait, ni bouton ni message d'erreur (bug remonté par
+      // Bourama, 2026-07-22 : "je ne vois pas de activer").
+      const registration = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("timeout")), 5000)
+        ),
+      ]);
       const abonnementExistant = await registration.pushManager.getSubscription();
       setEtat(abonnementExistant ? "actif" : "inactif");
     } catch {
-      setEtat("inactif");
+      setEtat("service_worker_bloque");
     }
   }
 
@@ -110,6 +129,21 @@ export function NotificationsPushToggle() {
         <p className="text-sm text-dj-texte-muet">
           Ton navigateur ne supporte pas les notifications push.
         </p>
+      )}
+
+      {etat === "service_worker_bloque" && (
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-dj-texte-muet">
+            Le service technique nécessaire n'a pas pu démarrer. Recharge la page et réessaie.
+          </p>
+          <button
+            type="button"
+            onClick={verifierEtat}
+            className="shrink-0 text-sm text-dj-texte-muet transition-colors hover:text-dj-texte"
+          >
+            Réessayer
+          </button>
+        </div>
       )}
 
       {etat === "refuse" && (
