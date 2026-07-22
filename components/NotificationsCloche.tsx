@@ -16,7 +16,7 @@ import { PleinEcran } from "@/components/PleinEcran";
 
 type NotificationItem = {
   id: number;
-  type: "follow" | "comment" | "rating" | "categorie_manquante" | "agent_update";
+  type: "follow" | "comment" | "rating" | "categorie_manquante" | "agent_update" | "feedback";
   lu: boolean;
   created_at: string | null;
   acteur_id: string;
@@ -25,6 +25,14 @@ type NotificationItem = {
   agent_id: string | null;
   agent_nom: string | null;
   agent_icone: string | null;
+  // Ajouté le 2026-07-21 : contenu réel du feedback (voir
+  // api/notifications.py). acteur_nom reste volontairement vide pour ce
+  // type -- jamais de nom d'utilisateur sur un retour.
+  feedback_type: "positif" | "negatif" | null;
+  feedback_commentaire: string | null;
+  feedback_contexte: boolean;
+  feedback_question: string | null;
+  feedback_reponse: string | null;
   update_id: number | null;
 };
 
@@ -82,6 +90,13 @@ function IconeType({ type }: { type: NotificationItem["type"] }) {
       </svg>
     );
   }
+  if (type === "feedback") {
+    return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M7 11v9H4a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3Zm0 0 4-8a2 2 0 0 1 2 2v4h5a2 2 0 0 1 2 2.2l-1.2 7A2 2 0 0 1 17 20H7" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
       <path d="M12 3.5 14.6 9l6 .9-4.3 4.2 1 6-5.3-2.8L6.7 20.1l1-6L3.4 9.9l6-.9L12 3.5Z" />
@@ -96,7 +111,21 @@ function texteNotification(n: NotificationItem) {
   if (n.type === "categorie_manquante")
     return `Choisis une catégorie pour ${n.agent_nom ?? "ton IA"}.`;
   if (n.type === "agent_update") return `${nom} a publié une mise à jour sur ${n.agent_nom ?? "une IA"}.`;
+  if (n.type === "feedback") {
+    // 6 variantes (2026-07-21, demande de Bourama) : jamais de nom
+    // d'utilisateur ici, contrairement aux autres types de notification.
+    const emoji = n.feedback_type === "negatif" ? "👎" : "👍";
+    const libelle = n.feedback_type === "negatif" ? "Retour négatif" : "Retour positif";
+    const agent = n.agent_nom ?? "ton IA";
+    if (n.feedback_contexte) return `${emoji} ${libelle} avec contexte partagé sur ${agent}.`;
+    if (n.feedback_commentaire) return `${emoji} ${libelle} avec commentaire sur ${agent}.`;
+    return `${emoji} ${libelle} sur ${agent}.`;
+  }
   return `${nom} a noté ${n.agent_nom ?? "ton IA"}.`;
+}
+
+function feedbackADesDetails(n: NotificationItem) {
+  return n.type === "feedback" && Boolean(n.feedback_commentaire || n.feedback_contexte);
 }
 
 function lienNotification(n: NotificationItem) {
@@ -105,6 +134,11 @@ function lienNotification(n: NotificationItem) {
   if (n.type === "agent_update" && n.agent_id) {
     return n.update_id ? `/agent/${n.agent_id}#maj-${n.update_id}` : `/agent/${n.agent_id}#mises-a-jour`;
   }
+  // Feedback AVEC commentaire ou contexte : pas de lien direct, ouvre un
+  // détail au clic à la place (voir onDetailFeedback dans LigneNotification).
+  // Feedback SANS rien à montrer : comportement inchangé, mène sur la
+  // page publique de l'IA comme avant.
+  if (n.type === "feedback" && feedbackADesDetails(n)) return null;
   if (n.agent_id) return `/agent/${n.agent_id}`;
   return null;
 }
@@ -112,9 +146,11 @@ function lienNotification(n: NotificationItem) {
 function LigneNotification({
   n,
   onOuvrir,
+  onDetailFeedback,
 }: {
   n: NotificationItem;
   onOuvrir: (n: NotificationItem) => void;
+  onDetailFeedback: (n: NotificationItem) => void;
 }) {
   const lien = lienNotification(n);
   const contenu = (
@@ -141,6 +177,22 @@ function LigneNotification({
       </Link>
     );
   }
+
+  if (feedbackADesDetails(n)) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          onOuvrir(n);
+          onDetailFeedback(n);
+        }}
+        className="block w-full text-left"
+      >
+        {contenu}
+      </button>
+    );
+  }
+
   return (
     <button type="button" onClick={() => onOuvrir(n)} className="block w-full text-left">
       {contenu}
@@ -153,6 +205,9 @@ export function NotificationsCloche() {
   const [nonLues, setNonLues] = useState(0);
   const [ouverte, setOuverte] = useState(false);
   const [pleinEcran, setPleinEcran] = useState(false);
+  // Détail d'un feedback (2026-07-21) : ouvert par LigneNotification quand
+  // la notification a un commentaire et/ou un contexte à montrer.
+  const [detailFeedback, setDetailFeedback] = useState<NotificationItem | null>(null);
 
   function charger() {
     appelerApi("/api/notifications?limite=20")
@@ -246,7 +301,7 @@ export function NotificationsCloche() {
               )}
               {notifications?.map((n, i) => (
                 <div key={n.id} className={i > 0 ? "border-t border-dj-bordure" : ""}>
-                  <LigneNotification n={n} onOuvrir={marquerLue} />
+                  <LigneNotification n={n} onOuvrir={marquerLue} onDetailFeedback={setDetailFeedback} />
                 </div>
               ))}
             </div>
@@ -288,10 +343,81 @@ export function NotificationsCloche() {
         )}
         {notifications?.map((n, i) => (
           <div key={n.id} className={i > 0 ? "border-t border-dj-bordure" : ""}>
-            <LigneNotification n={n} onOuvrir={marquerLue} />
+            <LigneNotification n={n} onOuvrir={marquerLue} onDetailFeedback={setDetailFeedback} />
           </div>
         ))}
       </PleinEcran>
+
+      {detailFeedback && <PopupDetailFeedback n={detailFeedback} onFermer={() => setDetailFeedback(null)} />}
     </div>
+  );
+}
+
+function PopupDetailFeedback({ n, onFermer }: { n: NotificationItem; onFermer: () => void }) {
+  const negatif = n.feedback_type === "negatif";
+  return (
+    <>
+      <div className="fixed inset-0 z-[60] bg-black/50" onClick={onFermer} />
+      <div className="fixed left-1/2 top-1/2 z-[70] w-[90vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-dj-bordure bg-dj-surface p-4 shadow-xl">
+        <div className="mb-3 flex items-center justify-between">
+          <span className="text-sm font-bold text-dj-texte">
+            {negatif ? "👎 Retour négatif" : "👍 Retour positif"} sur {n.agent_nom ?? "ton IA"}
+          </span>
+          <button
+            type="button"
+            onClick={onFermer}
+            aria-label="Fermer"
+            className="text-dj-texte-muet transition-colors hover:text-dj-texte"
+          >
+            ✕
+          </button>
+        </div>
+
+        {n.feedback_commentaire && (
+          <div className="mb-3">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-dj-texte-muet">Commentaire</p>
+            <p className="rounded-lg bg-dj-surface-haute px-3 py-2 text-sm text-dj-texte">
+              {n.feedback_commentaire}
+            </p>
+          </div>
+        )}
+
+        {/* Contexte partagé : jamais de nom d'utilisateur, uniquement le
+            contenu de l'échange concerné -- voir feedback_question et
+            feedback_reponse, remplis côté backend UNIQUEMENT quand
+            l'étudiant a explicitement coché le partage. */}
+        {n.feedback_question && (
+          <div className="mb-3">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-dj-texte-muet">
+              Question posée
+            </p>
+            <p className="rounded-lg bg-dj-surface-haute px-3 py-2 text-sm text-dj-texte">
+              {n.feedback_question}
+            </p>
+          </div>
+        )}
+
+        {n.feedback_reponse && (
+          <div>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-dj-texte-muet">
+              Réponse de l&apos;IA
+            </p>
+            <p className="rounded-lg bg-dj-surface-haute px-3 py-2 text-sm text-dj-texte">
+              {n.feedback_reponse}
+            </p>
+          </div>
+        )}
+
+        {n.agent_id && (
+          <Link
+            href={`/agent/${n.agent_id}`}
+            onClick={onFermer}
+            className="mt-4 block text-center text-xs text-dj-accent-1 transition-colors hover:text-dj-accent-2"
+          >
+            Voir la page de {n.agent_nom ?? "l'IA"}
+          </Link>
+        )}
+      </div>
+    </>
   );
 }
