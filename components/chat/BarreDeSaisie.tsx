@@ -34,6 +34,7 @@ export function BarreDeSaisie({
   const [longueur, setLongueur] = useState<LongueurReponse>("moyenne");
   const [fichier, setFichier] = useState<File | null>(null);
   const [apercuFichier, setApercuFichier] = useState<string | null>(null);
+  const [imageOuverte, setImageOuverte] = useState(false);
   const inputFichierRef = useRef<HTMLInputElement>(null);
   const zoneTexteRef = useRef<HTMLTextAreaElement>(null);
 
@@ -167,8 +168,14 @@ export function BarreDeSaisie({
           {fichier && (
             apercuFichier ? (
               <div className="relative w-fit">
-                {/* eslint-disable-next-line @next/next/no-img-element -- aperçu local (URL.createObjectURL) */}
-                <img src={apercuFichier} alt={fichier.name} className="h-16 w-16 rounded-xl border border-dj-bordure object-cover" />
+                <button
+                  onClick={() => setImageOuverte(true)}
+                  aria-label="Agrandir l'image"
+                  className="block h-16 w-16 overflow-hidden rounded-xl border border-dj-bordure"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- aperçu local (URL.createObjectURL) */}
+                  <img src={apercuFichier} alt={fichier.name} className="h-full w-full object-cover" />
+                </button>
                 <button
                   onClick={() => choisirFichier(null)}
                   aria-label="Retirer le fichier"
@@ -179,8 +186,14 @@ export function BarreDeSaisie({
               </div>
             ) : (
               <div className="flex w-fit items-center gap-2 rounded-xl border border-dj-bordure bg-dj-surface-haute px-3 py-2 text-xs text-dj-texte-muet">
-                {fichier.type.startsWith("video/") ? <Video size={14} /> : <FileText size={14} />}
-                <span className="max-w-[180px] truncate">{fichier.name}</span>
+                <button
+                  onClick={() => window.open(URL.createObjectURL(fichier), "_blank")}
+                  aria-label="Ouvrir le fichier"
+                  className="flex items-center gap-2 hover:text-dj-texte"
+                >
+                  {fichier.type.startsWith("video/") ? <Video size={14} /> : <FileText size={14} />}
+                  <span className="max-w-[180px] truncate">{fichier.name}</span>
+                </button>
                 <button onClick={() => choisirFichier(null)} aria-label="Retirer le fichier" className="hover:text-dj-texte">
                   <X size={14} />
                 </button>
@@ -309,6 +322,19 @@ export function BarreDeSaisie({
           </div>
         </div>
       </div>
+
+      {imageOuverte && apercuFichier && (
+        <div
+          className="fixed inset-0 z-50 flex animate-dj-fade-in items-center justify-center bg-black/85 p-6"
+          onClick={() => setImageOuverte(false)}
+        >
+          <button aria-label="Fermer" className="absolute right-5 top-5 text-dj-texte-muet hover:text-dj-texte">
+            <X size={22} />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={apercuFichier} alt="" className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain" />
+        </div>
+      )}
     </div>
   );
 }

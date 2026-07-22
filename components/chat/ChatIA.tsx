@@ -135,7 +135,7 @@ export function ChatIA({
           ? {
               nom: fichier.name,
               type: typePieceJointe,
-              previewUrl: typePieceJointe === "image" ? URL.createObjectURL(fichier) : undefined,
+              previewUrl: URL.createObjectURL(fichier),
             }
           : null,
     };

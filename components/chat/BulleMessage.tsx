@@ -7,7 +7,7 @@ import remarkMath from "remark-math";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import rehypeKatex from "rehype-katex";
-import { Copy, RotateCw, Pencil, Volume2, ThumbsUp, ThumbsDown, Check, MessageSquareQuote, FileText, Video } from "lucide-react";
+import { Copy, RotateCw, Pencil, Volume2, ThumbsUp, ThumbsDown, Check, MessageSquareQuote, FileText, Video, X } from "lucide-react";
 import { formaterHeure } from "@/lib/formatageHeure";
 import { BlocCode } from "./BlocCode";
 import { Mermaid } from "./Mermaid";
@@ -90,6 +90,7 @@ export function BulleMessage({
   onExpliquerSelection?: (texteSelectionne: string) => void;
 }) {
   const [copie, setCopie] = useState(false);
+  const [pieceJointeOuverte, setPieceJointeOuverte] = useState(false);
   const [enEdition, setEnEdition] = useState(false);
   const [texteEdition, setTexteEdition] = useState(message.content);
   const estUtilisateur = message.role === "user";
@@ -168,17 +169,23 @@ export function BulleMessage({
         {message.pieceJointe && (
           <div className="mb-2">
             {message.pieceJointe.type === "image" && message.pieceJointe.previewUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- aperçu local (URL.createObjectURL), pas un asset à optimiser
-              <img
-                src={message.pieceJointe.previewUrl}
-                alt={message.pieceJointe.nom}
-                className="max-h-48 w-auto rounded-xl border border-dj-bordure"
-              />
+              <button
+                onClick={() => setPieceJointeOuverte(true)}
+                aria-label="Agrandir l'image"
+                className="block max-h-48 overflow-hidden rounded-xl border border-dj-bordure"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- aperçu local (URL.createObjectURL), pas un asset à optimiser */}
+                <img src={message.pieceJointe.previewUrl} alt={message.pieceJointe.nom} className="max-h-48 w-auto" />
+              </button>
             ) : (
-              <div className="flex w-fit items-center gap-2 rounded-xl border border-dj-bordure bg-dj-fond/40 px-3 py-2 text-xs text-dj-texte-muet">
+              <button
+                onClick={() => message.pieceJointe?.previewUrl && window.open(message.pieceJointe.previewUrl, "_blank")}
+                aria-label="Ouvrir le fichier"
+                className="flex w-fit items-center gap-2 rounded-xl border border-dj-bordure bg-dj-fond/40 px-3 py-2 text-xs text-dj-texte-muet hover:text-dj-texte"
+              >
                 {message.pieceJointe.type === "video" ? <Video size={14} /> : <FileText size={14} />}
                 <span className="max-w-[220px] truncate">{message.pieceJointe.nom}</span>
-              </div>
+              </button>
             )}
           </div>
         )}
@@ -341,6 +348,19 @@ export function BulleMessage({
           </>
         )}
       </div>
+
+      {pieceJointeOuverte && message.pieceJointe?.previewUrl && (
+        <div
+          className="fixed inset-0 z-50 flex animate-dj-fade-in items-center justify-center bg-black/85 p-6"
+          onClick={() => setPieceJointeOuverte(false)}
+        >
+          <button aria-label="Fermer" className="absolute right-5 top-5 text-dj-texte-muet hover:text-dj-texte">
+            <X size={22} />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={message.pieceJointe.previewUrl} alt="" className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain" />
+        </div>
+      )}
     </div>
   );
 }
