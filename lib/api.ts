@@ -141,8 +141,37 @@ export async function appelerApiFichier(chemin: string, fichier: File) {
 }
 
 /**
- * Upload d'une image jointe à un message de chat, avant l'envoi du message
- * lui-même -- voir api/uploads.py:uploader_image_chat côté backend et
+ * Upload vers la bibliothèque d'un agent (n'importe quel type de fichier
+ * + un titre) -- voir api/agents.py:uploader_fichier_bibliotheque.
+ * Distincte de appelerApiFichier : celle-ci envoie un champ "titre" en
+ * plus du fichier dans le FormData.
+ */
+export async function ajouterFichierBibliotheque(agentId: string, fichier: File, titre: string) {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error("Connecte-toi pour envoyer un fichier.");
+  }
+
+  const corps = new FormData();
+  corps.append("fichier", fichier);
+  corps.append("titre", titre);
+
+  const reponse = await fetch(`${API_URL}/api/agents/${agentId}/bibliotheque`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${session.access_token}` },
+    body: corps,
+  });
+
+  if (!reponse.ok) {
+    const detail = await reponse.text().catch(() => "");
+    throw new Error(`Erreur API ${reponse.status} : ${detail}`);
+  }
+
+  return reponse.json();
+}
  * components/chat/ChatIA.tsx:envoyerMessage côté appelant. Réutilise
  * appelerApiFichier (même mécanique FormData) sur le nouvel endpoint dédié
  * au chat. Renvoie l'URL publique à passer dans `image_url` du payload
