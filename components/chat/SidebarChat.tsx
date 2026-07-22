@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ChevronsLeft, ChevronsRight, ArrowLeft, MessageSquarePlus, History, Star, Share2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -57,6 +57,26 @@ export function SidebarChat({
   const [historiqueDeplie, setHistoriqueDeplie] = useState(false);
   const [avisDeplie, setAvisDeplie] = useState(false);
   const [copie, setCopie] = useState(false);
+  const asideRef = useRef<HTMLElement>(null);
+  const boutonBasculeRef = useRef<HTMLButtonElement>(null);
+
+  // Clic en dehors du panneau -> fermeture (2026-07-20, bug trouvé par
+  // Bourama en test réel). mousedown plutôt que click : se déclenche
+  // avant le click du bouton bascule lui-même, donc on exclut ce bouton
+  // explicitement (via boutonBasculeRef) pour éviter un double-toggle
+  // (fermeture par ce handler puis réouverture immédiate par le onClick
+  // du bouton, dans le même geste).
+  useEffect(() => {
+    if (!ouverte) return;
+    function gererClicExterieur(e: MouseEvent) {
+      const cible = e.target as Node;
+      if (asideRef.current?.contains(cible)) return;
+      if (boutonBasculeRef.current?.contains(cible)) return;
+      setOuverte(false);
+    }
+    document.addEventListener("mousedown", gererClicExterieur);
+    return () => document.removeEventListener("mousedown", gererClicExterieur);
+  }, [ouverte]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -100,6 +120,7 @@ export function SidebarChat({
       {/* Bouton replier/déplier, fixé en haut à gauche -- même position
           que le contrôle natif de la sidebar Streamlit. */}
       <button
+        ref={boutonBasculeRef}
         onClick={() => setOuverte((v) => !v)}
         aria-label={ouverte ? "Replier le panneau" : "Déplier le panneau"}
         className="fixed left-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-md bg-black/35 text-white hover:bg-black/50"
@@ -108,7 +129,10 @@ export function SidebarChat({
       </button>
 
       {ouverte && (
-        <aside className="flex w-72 shrink-0 flex-col gap-3 overflow-y-auto border-r border-dj-bordure bg-dj-fond px-3 pb-4 pt-14">
+        <aside
+          ref={asideRef}
+          className="flex w-72 shrink-0 flex-col gap-3 overflow-y-auto border-r border-dj-bordure bg-dj-fond px-3 pb-4 pt-14"
+        >
           <Link
             href={`/agent/${agentId}`}
             className="flex items-center justify-center gap-2 rounded-full bg-dj-gradient px-4 py-2.5 text-sm font-bold text-[#1A0D02] shadow-[0_2px_14px_rgba(217,99,31,0.25)] transition-transform hover:-translate-y-0.5"
@@ -136,26 +160,32 @@ export function SidebarChat({
                 <History size={16} />
                 Historique
               </button>
-              {historiqueDeplie && (
-                <div className="flex flex-col px-1 pb-1">
-                  {fils.map((fil) => {
-                    const estActive = fil.conversation_id === conversationActiveId;
-                    return (
-                      <button
-                        key={fil.conversation_id ?? "legacy"}
-                        onClick={() => !estActive && choisirFil(fil)}
-                        disabled={estActive}
-                        className={`border-b border-white/[0.06] px-2 py-2 text-left text-sm last:border-b-0 ${
-                          estActive ? "text-dj-accent-1" : "text-dj-texte hover:text-dj-accent-1"
-                        }`}
-                      >
-                        {estActive ? "● " : ""}
-                        {fil.titre}
-                      </button>
-                    );
-                  })}
+              <div
+                className={`grid transition-[grid-template-rows] duration-300 ease-out ${
+                  historiqueDeplie ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <div className="flex flex-col px-1 pb-1">
+                    {fils.map((fil) => {
+                      const estActive = fil.conversation_id === conversationActiveId;
+                      return (
+                        <button
+                          key={fil.conversation_id ?? "legacy"}
+                          onClick={() => !estActive && choisirFil(fil)}
+                          disabled={estActive}
+                          className={`border-b border-white/[0.06] px-2 py-2 text-left text-sm last:border-b-0 ${
+                            estActive ? "text-dj-accent-1" : "text-dj-texte hover:text-dj-accent-1"
+                          }`}
+                        >
+                          {estActive ? "● " : ""}
+                          {fil.titre}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           )}
 
@@ -167,12 +197,18 @@ export function SidebarChat({
               <Star size={16} />
               Avis sur cet agent
             </button>
-            {avisDeplie && (
-              <div className="flex flex-col gap-4 px-3 pb-3">
-                <NoteAgent agentId={agentId} />
-                <CommentairesAgent agentId={agentId} />
+            <div
+              className={`grid transition-[grid-template-rows] duration-300 ease-out ${
+                avisDeplie ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+              }`}
+            >
+              <div className="overflow-hidden">
+                <div className="flex flex-col gap-4 px-3 pb-3">
+                  <NoteAgent agentId={agentId} />
+                  <CommentairesAgent agentId={agentId} />
+                </div>
               </div>
-            )}
+            </div>
           </div>
 
           <div className="mt-auto flex justify-center">

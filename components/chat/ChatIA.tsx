@@ -118,11 +118,26 @@ export function ChatIA({
     fichier: File | null,
     localisation: LocalisationJointe = null
   ) {
+    const typePieceJointe: "image" | "document" | "video" | null = fichier
+      ? fichier.type.startsWith("image/")
+        ? "image"
+        : fichier.type.startsWith("video/")
+        ? "video"
+        : "document"
+      : null;
     const messageUtilisateur: MessageAffiche = {
       id: null,
       role: "user",
       content: texte,
       created_at: new Date().toISOString(),
+      pieceJointe:
+        fichier && typePieceJointe
+          ? {
+              nom: fichier.name,
+              type: typePieceJointe,
+              previewUrl: typePieceJointe === "image" ? URL.createObjectURL(fichier) : undefined,
+            }
+          : null,
     };
     const historiquePourApi = messages.map((m) => ({ role: m.role, content: m.content }));
 
@@ -147,13 +162,8 @@ export function ChatIA({
     let imageUrl: string | null = null;
     let imagesBase64: string[] | null = null;
     let texteEnrichi = texte;
-    let typeFichier: "image" | "document" | "video" | null = null;
+    const typeFichier = typePieceJointe;
     if (fichier) {
-      typeFichier = fichier.type.startsWith("image/")
-        ? "image"
-        : fichier.type.startsWith("video/")
-        ? "video"
-        : "document";
       try {
         if (typeFichier === "image") {
           imageUrl = await uploaderImageChat(fichier);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Pin, Mic, Square, AudioLines, ArrowUp, X, MapPin } from "lucide-react";
+import { Pin, Mic, Square, AudioLines, ArrowUp, X, MapPin, FileText, Video } from "lucide-react";
 import { transcrireAudioChat } from "@/lib/api";
 
 export type LongueurReponse = "courte" | "moyenne" | "longue";
@@ -33,7 +33,38 @@ export function BarreDeSaisie({
   const [texte, setTexte] = useState("");
   const [longueur, setLongueur] = useState<LongueurReponse>("moyenne");
   const [fichier, setFichier] = useState<File | null>(null);
+  const [apercuFichier, setApercuFichier] = useState<string | null>(null);
   const inputFichierRef = useRef<HTMLInputElement>(null);
+  const zoneTexteRef = useRef<HTMLTextAreaElement>(null);
+
+  // Aperçu du fichier joint AVANT envoi (2026-07-20, bug trouvé par
+  // Bourama : jusqu'ici juste le nom du fichier en texte, aucune vignette).
+  // URL.createObjectURL uniquement pour les images -- documents/vidéos
+  // gardent le chip icône+nom (une vraie prévisualisation vidéo ou PDF
+  // demanderait un lecteur/rendu dédié, hors scope de ce correctif ciblé).
+  function choisirFichier(f: File | null) {
+    setApercuFichier((prec) => {
+      if (prec) URL.revokeObjectURL(prec);
+      return f && f.type.startsWith("image/") ? URL.createObjectURL(f) : null;
+    });
+    setFichier(f);
+  }
+
+  // Auto-agrandissement du textarea (2026-07-20, bug trouvé par Bourama en
+  // test réel) -- rows={1} fixait la hauteur à une seule ligne sans aucune
+  // logique de croissance : dès qu'on passait à la ligne, le texte
+  // défilait DANS cette unique ligne au lieu que le cadre grandisse, donc
+  // tout ce qui était au-dessus du curseur sortait du cadre visible.
+  // Approche standard (pas de lib) : hauteur remise à "auto" puis fixée à
+  // scrollHeight à chaque frappe -- le CSS max-h-40 (voir plus bas) prend
+  // le relais au-delà pour repasser en défilement interne plutôt que de
+  // grandir indéfiniment.
+  function ajusterHauteurTexte() {
+    const el = zoneTexteRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }
 
   // Dictée vocale (2026-07-20) : enregistrement micro réel via
   // MediaRecorder, transcrit par Whisper/Groq (api/uploads.py:
@@ -58,8 +89,9 @@ export function BarreDeSaisie({
     if (!texte.trim() || desactive) return;
     onEnvoyer(texte, longueur, fichier, localisation);
     setTexte("");
-    setFichier(null);
+    choisirFichier(null);
     setLocalisation(null);
+    requestAnimationFrame(ajusterHauteurTexte);
   }
 
   async function demarrerDictee() {
@@ -80,6 +112,7 @@ export function BarreDeSaisie({
           const fichierAudio = new File([blob], "dictee.webm", { type: blob.type });
           const { texte: transcrit } = await transcrireAudioChat(fichierAudio);
           setTexte((prec) => (prec.trim() ? `${prec} ${transcrit}` : transcrit));
+          requestAnimationFrame(ajusterHauteurTexte);
         } catch (e) {
           // Message générique remplacé le 2026-07-20 : masquait la vraie
           // cause (non connecté / audio vide-silencieux / vraie erreur
@@ -132,12 +165,27 @@ export function BarreDeSaisie({
       {(fichier || localisation) && (
         <div className="mb-2 flex flex-wrap items-center gap-2">
           {fichier && (
-            <div className="flex w-fit items-center gap-2 rounded-xl border border-dj-bordure bg-dj-surface-haute px-3 py-2 text-xs text-dj-texte-muet">
-              <span className="max-w-[180px] truncate">{fichier.name}</span>
-              <button onClick={() => setFichier(null)} aria-label="Retirer le fichier" className="hover:text-dj-texte">
-                <X size={14} />
-              </button>
-            </div>
+            apercuFichier ? (
+              <div className="relative w-fit">
+                {/* eslint-disable-next-line @next/next/no-img-element -- aperçu local (URL.createObjectURL) */}
+                <img src={apercuFichier} alt={fichier.name} className="h-16 w-16 rounded-xl border border-dj-bordure object-cover" />
+                <button
+                  onClick={() => choisirFichier(null)}
+                  aria-label="Retirer le fichier"
+                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-dj-fond text-dj-texte-muet hover:text-dj-texte"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex w-fit items-center gap-2 rounded-xl border border-dj-bordure bg-dj-surface-haute px-3 py-2 text-xs text-dj-texte-muet">
+                {fichier.type.startsWith("video/") ? <Video size={14} /> : <FileText size={14} />}
+                <span className="max-w-[180px] truncate">{fichier.name}</span>
+                <button onClick={() => choisirFichier(null)} aria-label="Retirer le fichier" className="hover:text-dj-texte">
+                  <X size={14} />
+                </button>
+              </div>
+            )
           )}
           {localisation && (
             <div className="flex w-fit items-center gap-2 rounded-xl border border-dj-bordure bg-dj-surface-haute px-3 py-2 text-xs text-dj-texte-muet">
@@ -155,8 +203,12 @@ export function BarreDeSaisie({
           les éléments alignés en bas -- voir section 3.3. */}
       <div className="rounded-3xl border border-dj-bordure bg-dj-surface-haute px-4 py-3 focus-within:border-dj-bordure-forte">
         <textarea
+          ref={zoneTexteRef}
           value={texte}
-          onChange={(e) => setTexte(e.target.value)}
+          onChange={(e) => {
+            setTexte(e.target.value);
+            ajusterHauteurTexte();
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
@@ -165,7 +217,7 @@ export function BarreDeSaisie({
           }}
           placeholder={transcriptionEnCours ? "Transcription en cours..." : "Pose ta question..."}
           rows={1}
-          className="max-h-40 w-full resize-none bg-transparent text-[15px] text-dj-texte outline-none placeholder:text-dj-texte-muet"
+          className="max-h-40 w-full resize-none overflow-y-auto bg-transparent text-[15px] text-dj-texte outline-none placeholder:text-dj-texte-muet"
         />
 
         <div className="mt-2 flex items-center justify-between">
@@ -185,7 +237,7 @@ export function BarreDeSaisie({
               type="file"
               accept={TYPES_FICHIERS_ACCEPTES}
               className="hidden"
-              onChange={(e) => setFichier(e.target.files?.[0] ?? null)}
+              onChange={(e) => choisirFichier(e.target.files?.[0] ?? null)}
             />
 
             {/* Position (2026-07-20) : jointe/retirée à chaque message,

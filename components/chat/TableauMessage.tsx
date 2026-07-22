@@ -63,8 +63,8 @@ export function TableauMessage({ children }: { children: ReactNode }) {
   // fidèle à ce que produisait le composant table par défaut.
   if (!thead || !tbody) {
     return (
-      <div className="my-2 overflow-x-auto">
-        <table>{children}</table>
+      <div className="my-2 overflow-x-auto rounded-lg border border-dj-bordure [&_th]:border [&_th]:border-dj-bordure [&_th]:bg-dj-surface-haute [&_th]:px-2.5 [&_th]:py-1.5 [&_td]:border [&_td]:border-dj-bordure [&_td]:px-2.5 [&_td]:py-1.5 [&_tbody_tr:nth-child(even)]:bg-dj-surface">
+        <table className="w-full border-collapse">{children}</table>
       </div>
     );
   }
@@ -79,7 +79,7 @@ export function TableauMessage({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="my-2 overflow-x-auto rounded-lg border border-dj-bordure">
+    <div className="my-2 overflow-x-auto rounded-lg border border-dj-bordure [&_td]:border [&_td]:border-dj-bordure [&_td]:px-2.5 [&_td]:py-1.5 [&_tbody_tr:nth-child(even)]:bg-dj-surface [&_tbody_tr:hover]:bg-dj-surface-haute">
       <table className="w-full border-collapse">
         <thead>
           <tr>
