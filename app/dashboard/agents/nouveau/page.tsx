@@ -90,6 +90,27 @@ export default function PageCreerAgent() {
   const [pleinEcranTexteLibre, setPleinEcranTexteLibre] = useState(false);
   const [fichierPdf, setFichierPdf] = useState<File | null>(null);
 
+  // Profil utilisateur dynamique par agent (2026-07-21) : le créateur
+  // choisit lui-même quelles infos suivre chez les personnes qui parlent
+  // à SON agent -- rien de prédéfini côté plateforme, voir
+  // ChampProfilUtilisateur (api/agents.py). Vide par défaut = fonctionnalité
+  // désactivée pour cet agent, aucun coût ajouté.
+  const [profilChamps, setProfilChamps] = useState<
+    { nom: string; description: string }[]
+  >([]);
+
+  function ajouterChampProfil() {
+    setProfilChamps((prev) => [...prev, { nom: "", description: "" }]);
+  }
+  function majChampProfil(i: number, champ: "nom" | "description", valeur: string) {
+    setProfilChamps((prev) =>
+      prev.map((c, idx) => (idx === i ? { ...c, [champ]: valeur } : c))
+    );
+  }
+  function supprimerChampProfil(i: number) {
+    setProfilChamps((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
   const [envoi, setEnvoi] = useState(false);
   const [agentCree, setAgentCree] = useState<{ id: string; nom: string; icone: string } | null>(
     null
@@ -151,6 +172,9 @@ export default function PageCreerAgent() {
           description,
           sous_titre: sousTitre,
           categorie_id: categorie?.id,
+          profil_utilisateur_schema: profilChamps
+            .filter((c) => c.nom.trim())
+            .map((c) => ({ nom: c.nom.trim(), description: c.description.trim() })),
         }),
       });
       idAgentCree = reponse.id;
@@ -519,6 +543,64 @@ export default function PageCreerAgent() {
                 <p className="mt-1 text-xs text-dj-texte-muet">{fichierPdf.name}</p>
               )}
             </div>
+          </section>
+
+          <section className="flex flex-col gap-4 rounded-2xl border border-dj-bordure bg-dj-surface p-6">
+            <h2 className="font-display text-base font-bold text-dj-texte">
+              4. Profil utilisateur (optionnel)
+            </h2>
+            <p className="text-sm text-dj-texte-muet">
+              Choisis les informations que ton IA doit retenir sur les personnes qui
+              lui parlent — elles se remplissent toutes seules au fil des
+              conversations (pour les utilisateurs connectés) et sont réutilisées
+              pour personnaliser les réponses. Optionnel : laisse vide si tu n&apos;en
+              as pas besoin.
+            </p>
+
+            {profilChamps.map((champ, i) => (
+              <div
+                key={i}
+                className="flex flex-col gap-2 rounded-xl border border-dj-bordure bg-dj-surface-haute p-4 sm:flex-row sm:items-start"
+              >
+                <div className="flex-1">
+                  <label className="text-xs font-semibold text-dj-texte-muet">
+                    Nom du champ
+                  </label>
+                  <input
+                    value={champ.nom}
+                    onChange={(e) => majChampProfil(i, "nom", e.target.value)}
+                    placeholder="Ex: niveau_scolaire"
+                    className={champClasse}
+                  />
+                </div>
+                <div className="flex-[2]">
+                  <label className="text-xs font-semibold text-dj-texte-muet">
+                    Description (guide l&apos;IA sur quoi chercher)
+                  </label>
+                  <input
+                    value={champ.description}
+                    onChange={(e) => majChampProfil(i, "description", e.target.value)}
+                    placeholder="Ex: Niveau étudié actuellement (collège, lycée, prépa...)"
+                    className={champClasse}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => supprimerChampProfil(i)}
+                  className="mt-1 self-start rounded-full border border-dj-bordure px-3 py-2 text-xs text-dj-texte-muet transition-colors hover:border-[#F87171] hover:text-[#F87171] sm:mt-6"
+                >
+                  Retirer
+                </button>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={ajouterChampProfil}
+              className="self-start rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
+            >
+              + Ajouter un champ
+            </button>
           </section>
 
           {erreur && <p className="text-sm text-[#F87171]">{erreur}</p>}
