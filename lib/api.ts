@@ -178,6 +178,9 @@ export async function ajouterFichierBibliotheque(
 
   return reponse.json();
 }
+
+/**
+ * Upload d'une image jointe à un message de chat -- voir
  * components/chat/ChatIA.tsx:envoyerMessage côté appelant. Réutilise
  * appelerApiFichier (même mécanique FormData) sur le nouvel endpoint dédié
  * au chat. Renvoie l'URL publique à passer dans `image_url` du payload
