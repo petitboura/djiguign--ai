@@ -11,7 +11,7 @@ import { BoutonAccueil } from "@/components/BoutonAccueil";
 import { ChampImage } from "@/components/ChampImage";
 import { BoutonPartager } from "@/components/BoutonPartager";
 import { PopupCategories, type Categorie } from "@/components/PopupCategories";
-import { DroitsAgent } from "@/components/DroitsAgent";
+import { DroitsAgentCreation } from "@/components/DroitsAgentCreation";
 
 // Étape D.6 (pivot social) : formulaire de création d'agent, nouveau flow
 // (voir PIVOT_SOCIAL.md — nom → icône → image vitrine → description →
@@ -114,6 +114,13 @@ export default function PageCreerAgent() {
     setProfilChamps((prev) => prev.filter((_, idx) => idx !== i));
   }
 
+  // Droits de l'agent (Bourama, 2026-07-23 : "dans le formulaire de
+  // création, comme tous les autres [champs]") -- collectés ici via
+  // DroitsAgentCreation, envoyés dans le même POST /api/agents que le
+  // reste, pas configurés après coup.
+  const [droitsGeneration, setDroitsGeneration] = useState<string[]>([]);
+  const [droitsServeurs, setDroitsServeurs] = useState<string[]>([]);
+
   const [envoi, setEnvoi] = useState(false);
   const [agentCree, setAgentCree] = useState<{ id: string; nom: string; icone: string } | null>(
     null
@@ -172,6 +179,8 @@ export default function PageCreerAgent() {
             (l) => l.type_requete.trim() || l.comportement.trim()
           ),
           outils_choisis: [],
+          outils_generation_choisis: droitsGeneration,
+          serveurs_choisis: droitsServeurs,
           description_connaissance: descriptionConnaissance,
           lien_notion: lienNotion || null,
           texte_libre: texteLibre,
@@ -250,15 +259,6 @@ export default function PageCreerAgent() {
               className="flex-1 truncate bg-transparent text-sm text-dj-texte outline-none"
               onFocus={(e) => e.target.select()}
             />
-          </div>
-
-          <div className="mt-8 rounded-2xl border border-dj-bordure bg-dj-surface-haute p-5 text-left">
-            <h2 className="mb-1 text-base font-bold text-dj-texte">Droits de l&apos;agent</h2>
-            <p className="mb-4 text-xs text-dj-texte-muet">
-              Aucune capacité n&apos;est activée par défaut. Choisis ce que {agentCree.nom} a le droit de faire
-              avant de le partager.
-            </p>
-            <DroitsAgent agentId={agentCree.id} />
           </div>
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
@@ -618,6 +618,21 @@ export default function PageCreerAgent() {
             >
               + Ajouter un champ
             </button>
+          </section>
+
+          <section className="mt-2 flex flex-col gap-3 rounded-2xl border border-dj-bordure bg-dj-surface-haute p-5">
+            <div>
+              <h2 className="font-display text-lg font-bold text-dj-texte">Droits de l&apos;agent</h2>
+              <p className="text-xs text-dj-texte-muet">
+                Aucune capacité n&apos;est activée par défaut. Choisis ce que ton IA a le droit de faire.
+              </p>
+            </div>
+            <DroitsAgentCreation
+              onChange={({ outilsGeneration, serveurs }) => {
+                setDroitsGeneration(outilsGeneration);
+                setDroitsServeurs(serveurs);
+              }}
+            />
           </section>
 
           {erreur && <p className="text-sm text-[#F87171]">{erreur}</p>}

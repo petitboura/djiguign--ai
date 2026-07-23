@@ -228,6 +228,10 @@ export async function uploaderVideoChat(fichier: File) {
  * Statut de connexion OAuth à un service externe (ex. "github") via le
  * moteur générique -- voir connexions/oauth_generique.py côté backend.
  */
+export async function lireRegistreOutils() {
+  return appelerApi(`/api/registre-outils`);
+}
+
 export async function lireDroitsAgent(agentId: string) {
   return appelerApi(`/api/agents/${agentId}/droits`);
 }
