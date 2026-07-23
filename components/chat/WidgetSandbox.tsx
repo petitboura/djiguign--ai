@@ -1,18 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { AppWindow } from "lucide-react";
-import { usePanneau } from "./PanneauContext";
+import { BlocExpansible } from "./BlocExpansible";
 
 // Bloc ```html ou ```widget du markdown -- le modèle peut générer un
 // mini-outil autonome (calculateur, formulaire, mini-jeu) en HTML/CSS/JS
-// complet. Depuis le panneau latéral (2026-07-20, demande de Bourama :
-// "même système que Claude" -- voir PanneauContext.tsx), ce composant
-// n'affiche plus l'iframe en ligne dans le fil : il ouvre AUTOMATIQUEMENT
-// le widget dans le panneau dès son arrivée (comme un artifact Claude.ai)
-// et laisse dans le fil une carte compacte pour le rouvrir/le refocaliser
-// si le panneau a été fermé entretemps. Le rendu réel de l'iframe vit
-// dans PanneauPreview.tsx (construireDocumentWidget), pas ici.
+// complet. Se déroule dans le fil au clic (voir BlocExpansible.tsx) --
+// plus de panneau latéral ni d'ouverture automatique, retirés à la
+// demande de Bourama (2026-07-20) : retour au comportement replié/
+// déroulé dans le fil, avec un vrai plein écran (pas de division
+// d'écran) pour voir le widget en grand.
 export function construireDocumentWidget(code: string): string {
   return `<!DOCTYPE html><html><head><meta charset="utf-8">
     <style>
@@ -76,47 +73,21 @@ export function construireDocumentWidget(code: string): string {
     </body></html>`;
 }
 
-let compteurWidget = 0;
-
 export function WidgetSandbox({ code }: { code: string }) {
-  const { ouvrirDansPanneau, itemActif } = usePanneau();
-  // Id stable pour la durée de vie du composant (un id par bloc ```widget
-  // du message, pas par re-render) -- sert à savoir si CE widget précis
-  // est l'élément actuellement affiché dans le panneau, pour changer le
-  // libellé de la carte ("Ouvrir" vs "Affiché").
-  const idRef = useMemoId();
-
-  useEffect(() => {
-    // Ouverture automatique à l'arrivée du widget, comme un artifact
-    // Claude.ai -- pas besoin de cliquer pour voir un résultat qui vient
-    // d'être généré. N'ouvre qu'une fois (dépendances : id+code stables).
-    ouvrirDansPanneau({ id: idRef, type: "widget", titre: "Widget interactif", code });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idRef, code]);
-
-  const estActif = itemActif?.id === idRef;
-
   return (
-    <button
-      onClick={() => ouvrirDansPanneau({ id: idRef, type: "widget", titre: "Widget interactif", code })}
-      className="my-2 flex w-full max-w-sm animate-dj-fade-in items-center gap-3 rounded-xl border border-dj-bordure bg-dj-surface p-3 text-left transition-colors hover:border-dj-bordure-forte"
-    >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-dj-gradient text-[#1A0D02]">
-        <AppWindow size={16} />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm text-dj-texte">Widget interactif</span>
-        <span className="block text-[11px] text-dj-texte-muet">{estActif ? "Affiché dans le panneau" : "Ouvrir dans le panneau"}</span>
-      </span>
-    </button>
+    <BlocExpansible
+      titre="Widget interactif"
+      icone={AppWindow}
+      sousTitre="HTML"
+      texteACopier={code}
+      enfant={
+        <iframe
+          sandbox="allow-scripts allow-forms allow-modals"
+          srcDoc={construireDocumentWidget(code)}
+          className="h-96 w-full rounded-lg border border-dj-bordure"
+          title="Widget interactif"
+        />
+      }
+    />
   );
-}
-
-// useState (plutôt qu'un simple useRef(crypto.randomUUID())) garantit une
-// valeur calculée une seule fois pour la vie du composant -- l'init
-// inline d'un useRef n'est pas mémoïsée par React en mode strict/dev,
-// donc pourrait générer un nouvel id à chaque render.
-function useMemoId(): string {
-  const [id] = useState(() => `widget-${++compteurWidget}-${Math.random().toString(36).slice(2)}`);
-  return id;
 }

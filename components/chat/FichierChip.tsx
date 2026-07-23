@@ -1,7 +1,5 @@
-"use client";
-
-import { FileText, FileSpreadsheet, Presentation, FileArchive, FileJson, FileCode, Image, Box, File, Download, Eye } from "lucide-react";
-import { usePanneau } from "./PanneauContext";
+import { FileText, FileSpreadsheet, Presentation, FileArchive, FileJson, FileCode, Image, Box, File, Download } from "lucide-react";
+import { BlocExpansible } from "./BlocExpansible";
 
 const EXTENSIONS_FICHIER: Record<string, { icone: typeof File; libelle: string }> = {
   pdf: { icone: FileText, libelle: "PDF" },
@@ -45,16 +43,34 @@ export function extensionFichier(href: string): string | null {
 }
 
 export function FichierChip({ href, nom }: { href: string; nom: string }) {
-  const { ouvrirDansPanneau } = usePanneau();
   const infos = extensionFichier(href);
   const { icone: Icone, libelle } = infos ? EXTENSIONS_FICHIER[infos] : { icone: File, libelle: "Fichier" };
-  // Aperçu dans le panneau réservé au PDF : c'est le seul format ici
-  // qu'un navigateur sait rendre nativement en iframe sans lib
-  // supplémentaire (Word/Excel/zip/3D n'ont pas de viewer intégré).
-  const estPdf = infos === "pdf";
 
+  // PDF : seul format ici qu'un navigateur sait rendre nativement en
+  // iframe sans lib supplémentaire -- se déroule dans le fil comme le
+  // code et les widgets (voir BlocExpansible.tsx). Plus de panneau
+  // latéral (retiré, 2026-07-20, demande de Bourama).
+  if (infos === "pdf") {
+    return (
+      <BlocExpansible
+        titre={nom}
+        icone={Icone}
+        sousTitre={libelle}
+        hrefTelechargement={href}
+        enfant={<iframe src={href} className="h-[70vh] w-full rounded-lg border border-dj-bordure" title={nom} />}
+      />
+    );
+  }
+
+  // Word/Excel/PowerPoint/zip/JSON/XML/images-en-lien/3D : pas de viewer
+  // natif de navigateur -- carte téléchargement seule, comme avant.
   return (
-    <span className="my-2 flex w-fit max-w-full animate-dj-fade-in items-center gap-3 rounded-xl border border-dj-bordure bg-dj-surface-haute px-3 py-2.5">
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="my-2 flex w-fit max-w-full animate-dj-fade-in items-center gap-3 rounded-xl border border-dj-bordure bg-dj-surface-haute px-3 py-2.5 no-underline transition-colors hover:border-dj-bordure-forte"
+    >
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-dj-gradient text-[#1A0D02]">
         <Icone size={16} />
       </span>
@@ -62,18 +78,7 @@ export function FichierChip({ href, nom }: { href: string; nom: string }) {
         <span className="block truncate text-sm text-dj-texte">{nom}</span>
         <span className="block text-[11px] text-dj-texte-muet">{libelle}</span>
       </span>
-      {estPdf && (
-        <button
-          onClick={() => ouvrirDansPanneau({ id: href, type: "pdf", titre: nom, href })}
-          aria-label="Aperçu"
-          className="ml-1 shrink-0 rounded-md p-1 text-dj-texte-muet hover:text-dj-texte"
-        >
-          <Eye size={15} />
-        </button>
-      )}
-      <a href={href} target="_blank" rel="noopener noreferrer" aria-label="Télécharger" className="shrink-0 rounded-md p-1 text-dj-texte-muet hover:text-dj-texte">
-        <Download size={15} />
-      </a>
-    </span>
+      <Download size={14} className="ml-1 shrink-0 text-dj-texte-muet" />
+    </a>
   );
 }
