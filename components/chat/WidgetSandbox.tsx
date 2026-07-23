@@ -1,30 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { AppWindow } from "lucide-react";
+import { usePanneau } from "./PanneauContext";
 
-// Rend un bloc ```html ou ```widget du markdown dans un <iframe
-// sandbox="allow-scripts allow-forms allow-modals"> -- le modèle peut
-// générer un mini-outil autonome (calculateur, formulaire, mini-jeu) en
-// HTML/CSS/JS complet, affiché isolé du reste de la page (pas d'accès au
-// localStorage, cookies, ou DOM parent : voir attribut sandbox,
-// volontairement SANS "allow-same-origin" pour empêcher tout accès aux
-// données de session de l'utilisateur connecté).
-//
-// allow-modals (2026-07-20, ajouté après un test réel de Bourama) :
-// sans ça, alert()/confirm()/prompt() sont bloqués SILENCIEUSEMENT par le
-// navigateur -- aucune erreur console, le clic déclenche bien le script,
-// mais rien à l'écran. Symptôme trompeur ("le bouton ne fait rien") pour
-// un widget généré par le modèle qui utilise souvent alert() en premier
-// réflexe pour un exemple simple.
-//
-// Chargement fluide : l'iframe est montée immédiatement mais cachée
-// (opacity 0) tant que son onLoad n'est pas déclenché, pour éviter un
-// flash de contenu vide/blanc qui casserait la sensation de fluidité
-// pendant le reste du streaming.
-export function WidgetSandbox({ code }: { code: string }) {
-  const [charge, setCharge] = useState(false);
-
-  const document = `<!DOCTYPE html><html><head><meta charset="utf-8">
+// Bloc ```html ou ```widget du markdown -- le modèle peut générer un
+// mini-outil autonome (calculateur, formulaire, mini-jeu) en HTML/CSS/JS
+// complet. Depuis le panneau latéral (2026-07-20, demande de Bourama :
+// "même système que Claude" -- voir PanneauContext.tsx), ce composant
+// n'affiche plus l'iframe en ligne dans le fil : il ouvre AUTOMATIQUEMENT
+// le widget dans le panneau dès son arrivée (comme un artifact Claude.ai)
+// et laisse dans le fil une carte compacte pour le rouvrir/le refocaliser
+// si le panneau a été fermé entretemps. Le rendu réel de l'iframe vit
+// dans PanneauPreview.tsx (construireDocumentWidget), pas ici.
+export function construireDocumentWidget(code: string): string {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8">
     <style>
       html,body{margin:0;padding:12px;background:#161210;color:#F5ECE0;
         font-family:Inter,system-ui,sans-serif;}
@@ -84,19 +74,49 @@ export function WidgetSandbox({ code }: { code: string }) {
       })();
     </script>
     </body></html>`;
+}
+
+let compteurWidget = 0;
+
+export function WidgetSandbox({ code }: { code: string }) {
+  const { ouvrirDansPanneau, itemActif } = usePanneau();
+  // Id stable pour la durée de vie du composant (un id par bloc ```widget
+  // du message, pas par re-render) -- sert à savoir si CE widget précis
+  // est l'élément actuellement affiché dans le panneau, pour changer le
+  // libellé de la carte ("Ouvrir" vs "Affiché").
+  const idRef = useMemoId();
+
+  useEffect(() => {
+    // Ouverture automatique à l'arrivée du widget, comme un artifact
+    // Claude.ai -- pas besoin de cliquer pour voir un résultat qui vient
+    // d'être généré. N'ouvre qu'une fois (dépendances : id+code stables).
+    ouvrirDansPanneau({ id: idRef, type: "widget", titre: "Widget interactif", code });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idRef, code]);
+
+  const estActif = itemActif?.id === idRef;
 
   return (
-    <div className="my-3 overflow-hidden rounded-xl border border-dj-bordure bg-dj-surface">
-      <div className="border-b border-dj-bordure px-3 py-1.5 text-[11px] uppercase tracking-wide text-dj-texte-muet">
-        Widget interactif
-      </div>
-      <iframe
-        sandbox="allow-scripts allow-forms allow-modals"
-        srcDoc={document}
-        onLoad={() => setCharge(true)}
-        className={`h-72 w-full transition-opacity duration-500 ${charge ? "opacity-100" : "opacity-0"}`}
-        title="Widget interactif généré"
-      />
-    </div>
+    <button
+      onClick={() => ouvrirDansPanneau({ id: idRef, type: "widget", titre: "Widget interactif", code })}
+      className="my-2 flex w-full max-w-sm animate-dj-fade-in items-center gap-3 rounded-xl border border-dj-bordure bg-dj-surface p-3 text-left transition-colors hover:border-dj-bordure-forte"
+    >
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-dj-gradient text-[#1A0D02]">
+        <AppWindow size={16} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm text-dj-texte">Widget interactif</span>
+        <span className="block text-[11px] text-dj-texte-muet">{estActif ? "Affiché dans le panneau" : "Ouvrir dans le panneau"}</span>
+      </span>
+    </button>
   );
+}
+
+// useState (plutôt qu'un simple useRef(crypto.randomUUID())) garantit une
+// valeur calculée une seule fois pour la vie du composant -- l'init
+// inline d'un useRef n'est pas mémoïsée par React en mode strict/dev,
+// donc pourrait générer un nouvel id à chaque render.
+function useMemoId(): string {
+  const [id] = useState(() => `widget-${++compteurWidget}-${Math.random().toString(36).slice(2)}`);
+  return id;
 }
