@@ -9,6 +9,7 @@ import { BoutonRetour } from "@/components/BoutonRetour";
 import { BoutonAccueil } from "@/components/BoutonAccueil";
 import { ChampImage } from "@/components/ChampImage";
 import { PopupCategories, chargerCategories, type Categorie } from "@/components/PopupCategories";
+import { DroitsAgent } from "@/components/DroitsAgent";
 
 // Étape "modifier un agent" (2026-07-12, demande de Bourama : "on ne peut
 // pas modifier ces agents créés" — gros morceau manquant depuis le début
@@ -542,6 +543,11 @@ export default function PageModifierAgent() {
             {message && <span className="text-sm text-dj-texte-muet">{message}</span>}
           </div>
         </form>
+
+        <section className="mt-10 border-t border-dj-bordure pt-8">
+          <h2 className="text-lg font-bold mb-4">Droits de l&apos;agent</h2>
+          <DroitsAgent agentId={agentId} />
+        </section>
 
         <section className="mt-10 flex flex-col gap-4">
           <h2 className="font-display text-lg font-bold text-dj-texte">Documents PDF indexés</h2>

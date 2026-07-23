@@ -228,6 +228,20 @@ export async function uploaderVideoChat(fichier: File) {
  * Statut de connexion OAuth à un service externe (ex. "github") via le
  * moteur générique -- voir connexions/oauth_generique.py côté backend.
  */
+export async function lireDroitsAgent(agentId: string) {
+  return appelerApi(`/api/agents/${agentId}/droits`);
+}
+
+export async function modifierDroitsAgent(
+  agentId: string,
+  payload: { outils_generation: string[]; serveurs: string[]; informer_utilisateurs: boolean }
+) {
+  return appelerApi(`/api/agents/${agentId}/droits`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function statutConnexion(service: string) {
   const resultat = await appelerApi(`/api/connexions/${service}/statut`);
   return resultat as { connecte: boolean };
