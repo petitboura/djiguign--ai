@@ -184,3 +184,25 @@ export async function uploaderVideoChat(fichier: File) {
   const resultat = await appelerApiFichier("/api/uploads/video-chat", fichier);
   return resultat as { transcript: string; frames_base64: string[] };
 }
+
+/**
+ * Statut de connexion OAuth à un service externe (ex. "github") via le
+ * moteur générique -- voir connexions/oauth_generique.py côté backend.
+ */
+export async function statutConnexion(service: string) {
+  const resultat = await appelerApi(`/api/connexions/${service}/statut`);
+  return resultat as { connecte: boolean };
+}
+
+/**
+ * Démarre une connexion OAuth : renvoie l'URL d'autorisation à ouvrir
+ * (redirection complète, pas de popup) -- voir app/oauth/retour/page.tsx
+ * pour la page qui traite le retour.
+ */
+export async function demarrerConnexion(service: string, agentId?: string) {
+  const chemin = agentId
+    ? `/api/connexions/${service}/demarrer?agent_id=${encodeURIComponent(agentId)}`
+    : `/api/connexions/${service}/demarrer`;
+  const resultat = await appelerApi(chemin);
+  return resultat as { url: string | null; erreur?: string };
+}

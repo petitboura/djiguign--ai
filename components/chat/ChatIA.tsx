@@ -332,7 +332,7 @@ export function ChatIA({
       </div>
 
       <div className="px-4 pb-6">
-        <BarreDeSaisie onEnvoyer={envoyerMessage} desactive={genEnCours} />
+        <BarreDeSaisie onEnvoyer={envoyerMessage} desactive={genEnCours} agentId={agentId} />
       </div>
 
       {popupFeedback && (

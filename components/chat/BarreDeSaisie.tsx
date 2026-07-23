@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Pin, Mic, Square, AudioLines, ArrowUp, X, MapPin } from "lucide-react";
-import { transcrireAudioChat } from "@/lib/api";
+import { useEffect, useRef, useState } from "react";
+import { Pin, Mic, Square, AudioLines, ArrowUp, X, MapPin, Github } from "lucide-react";
+import { transcrireAudioChat, statutConnexion, demarrerConnexion } from "@/lib/api";
 
 export type LongueurReponse = "courte" | "moyenne" | "longue";
 export type LocalisationJointe = { latitude: number; longitude: number } | null;
@@ -21,6 +21,7 @@ const TYPES_FICHIERS_ACCEPTES =
 export function BarreDeSaisie({
   onEnvoyer,
   desactive,
+  agentId,
 }: {
   onEnvoyer: (
     texte: string,
@@ -29,6 +30,7 @@ export function BarreDeSaisie({
     localisation: LocalisationJointe
   ) => void;
   desactive?: boolean;
+  agentId?: string;
 }) {
   const [texte, setTexte] = useState("");
   const [longueur, setLongueur] = useState<LongueurReponse>("moyenne");
@@ -49,6 +51,36 @@ export function BarreDeSaisie({
   // `localisation`, injecté en contexte de prompt système.
   const [localisation, setLocalisation] = useState<LocalisationJointe>(null);
   const [localisationEnCours, setLocalisationEnCours] = useState(false);
+
+  // Connexion GitHub (2026-07-22) : bouton dédié, style de l'app (pas les
+  // couleurs de marque GitHub) -- voir connexions/oauth_generique.py et
+  // core/serveur_mcp_github.py côté backend. `null` = statut pas encore
+  // connu (chargement), évite un flash "non connecté" au premier rendu.
+  const [githubConnecte, setGithubConnecte] = useState<boolean | null>(null);
+  const [githubEnCours, setGithubEnCours] = useState(false);
+
+  useEffect(() => {
+    statutConnexion("github")
+      .then((r) => setGithubConnecte(r.connecte))
+      .catch(() => setGithubConnecte(false));
+  }, []);
+
+  async function connecterGithub() {
+    if (githubConnecte) return; // déjà connecté, rien à faire ici
+    setGithubEnCours(true);
+    try {
+      const { url, erreur } = await demarrerConnexion("github", agentId);
+      if (url) {
+        window.location.href = url;
+      } else {
+        alert(erreur || "Connexion GitHub indisponible pour le moment.");
+        setGithubEnCours(false);
+      }
+    } catch {
+      alert("Connexion GitHub indisponible pour le moment.");
+      setGithubEnCours(false);
+    }
+  }
 
   function pasDisponible() {
     alert("Pas disponible pour le moment.");
@@ -187,6 +219,27 @@ export function BarreDeSaisie({
               className="hidden"
               onChange={(e) => setFichier(e.target.files?.[0] ?? null)}
             />
+
+            {/* Connexion GitHub (2026-07-22) : icône de marque, couleurs et
+                style de l'app (dj-texte-muet/dj-accent-1), pas les couleurs
+                GitHub -- voir connexions/oauth_generique.py côté backend.
+                Point vert discret quand déjà connecté. */}
+            <button
+              onClick={connecterGithub}
+              disabled={githubEnCours}
+              aria-label={githubConnecte ? "Connecté à GitHub" : "Connecter GitHub"}
+              title={githubConnecte ? "Connecté à GitHub" : "Connecter GitHub"}
+              className={
+                githubConnecte
+                  ? "relative text-dj-accent-1 transition-colors"
+                  : "relative text-dj-texte-muet transition-colors hover:text-dj-texte disabled:opacity-60"
+              }
+            >
+              <Github size={18} />
+              {githubConnecte && (
+                <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-green-500" />
+              )}
+            </button>
 
             {/* Position (2026-07-20) : jointe/retirée à chaque message,
                 jamais capturée automatiquement -- clic = permission navigateur. */}
