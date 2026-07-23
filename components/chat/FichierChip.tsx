@@ -1,4 +1,5 @@
 import { FileText, FileSpreadsheet, Presentation, FileArchive, FileJson, FileCode, Image, Box, File, Download } from "lucide-react";
+import { BlocExpansible } from "./BlocExpansible";
 
 const EXTENSIONS_FICHIER: Record<string, { icone: typeof File; libelle: string }> = {
   pdf: { icone: FileText, libelle: "PDF" },
@@ -45,6 +46,24 @@ export function FichierChip({ href, nom }: { href: string; nom: string }) {
   const infos = extensionFichier(href);
   const { icone: Icone, libelle } = infos ? EXTENSIONS_FICHIER[infos] : { icone: File, libelle: "Fichier" };
 
+  // PDF : seul format ici qu'un navigateur sait rendre nativement en
+  // iframe sans lib supplémentaire -- se déroule dans le fil comme le
+  // code et les widgets (voir BlocExpansible.tsx). Plus de panneau
+  // latéral (retiré, 2026-07-20, demande de Bourama).
+  if (infos === "pdf") {
+    return (
+      <BlocExpansible
+        titre={nom}
+        icone={Icone}
+        sousTitre={libelle}
+        hrefTelechargement={href}
+        enfant={<iframe src={href} className="h-[70vh] w-full rounded-lg border border-dj-bordure" title={nom} />}
+      />
+    );
+  }
+
+  // Word/Excel/PowerPoint/zip/JSON/XML/images-en-lien/3D : pas de viewer
+  // natif de navigateur -- carte téléchargement seule, comme avant.
   return (
     <a
       href={href}

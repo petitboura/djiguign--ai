@@ -16,7 +16,12 @@ const TYPES_FICHIERS_ACCEPTES =
   "application/pdf," +
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document," +
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet," +
-  "video/mp4,video/webm,video/quicktime";
+  "video/mp4,video/webm,video/quicktime," +
+  // Upload d'un vrai fichier audio (2026-07-22, préparé par Bourama --
+  // distinct de la dictée micro juste en dessous, qui passe par le même
+  // endpoint /audio-chat mais un chemin de code différent, voir
+  // ChatIA.tsx:envoyerMessage).
+  "audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/x-m4a,audio/aac";
 
 export function BarreDeSaisie({
   onEnvoyer,
@@ -421,7 +426,7 @@ export function BarreDeSaisie({
               <button
                 onClick={arreterDictee}
                 aria-label="Arrêter la dictée"
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500 text-white"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-dj-accent-2 text-white"
               >
                 <Square size={14} />
               </button>

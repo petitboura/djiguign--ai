@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { appelerApiStream, uploaderImageChat, uploaderDocumentChat, uploaderVideoChat } from "@/lib/api";
+import { appelerApiStream, uploaderImageChat, uploaderDocumentChat, uploaderVideoChat, transcrireAudioChat } from "@/lib/api";
 import { useNotificationsPush, proposerNotificationsPushUneFois } from "@/lib/useNotificationsPush";
 import { BulleMessage, MessageAffiche } from "./BulleMessage";
 import { BarreDeSaisie, LongueurReponse, LocalisationJointe } from "./BarreDeSaisie";
@@ -127,11 +127,13 @@ export function ChatIA({
     // fois par appareil, jamais si déjà répondu avant".
     proposerNotificationsPushUneFois(activerNotificationsPush);
 
-    const typePieceJointe: "image" | "document" | "video" | null = fichier
+    const typePieceJointe: "image" | "document" | "video" | "audio" | null = fichier
       ? fichier.type.startsWith("image/")
         ? "image"
         : fichier.type.startsWith("video/")
         ? "video"
+        : fichier.type.startsWith("audio/")
+        ? "audio"
         : "document"
       : null;
     const messageUtilisateur: MessageAffiche = {
@@ -176,6 +178,9 @@ export function ChatIA({
       try {
         if (typeFichier === "image") {
           imageUrl = await uploaderImageChat(fichier);
+        } else if (typeFichier === "audio") {
+          const { texte: texteAudio } = await transcrireAudioChat(fichier);
+          texteEnrichi = `${texte}\n\n[Audio joint : ${fichier.name} -- transcription]\n${texteAudio}`;
         } else if (typeFichier === "video") {
           const { transcript, frames_base64 } = await uploaderVideoChat(fichier);
           imagesBase64 = frames_base64.length ? frames_base64 : null;

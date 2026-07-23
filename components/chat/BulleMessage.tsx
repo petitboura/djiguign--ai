@@ -7,7 +7,7 @@ import remarkMath from "remark-math";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import rehypeKatex from "rehype-katex";
-import { Copy, RotateCw, Pencil, Volume2, ThumbsUp, ThumbsDown, Check, MessageSquareQuote, FileText, Video, X } from "lucide-react";
+import { Copy, RotateCw, Pencil, Volume2, ThumbsUp, ThumbsDown, Check, MessageSquareQuote, FileText, Video, Music, X } from "lucide-react";
 import { formaterHeure } from "@/lib/formatageHeure";
 import { BlocCode } from "./BlocCode";
 import { Mermaid } from "./Mermaid";
@@ -69,7 +69,7 @@ export interface MessageAffiche {
   // valable seulement le temps de la session ; pas besoin de la faire
   // survivre à un rechargement de page, juste de montrer ce qui a été
   // envoyé dans le fil de la conversation en cours.
-  pieceJointe?: { nom: string; type: "image" | "document" | "video"; previewUrl?: string } | null;
+  pieceJointe?: { nom: string; type: "image" | "document" | "video" | "audio"; previewUrl?: string } | null;
 }
 
 // Voir MIGRATION_CHAT_VERS_NEXTJS.md, section 3.1 :
@@ -184,7 +184,13 @@ export function BulleMessage({
                 aria-label="Ouvrir le fichier"
                 className="flex w-fit items-center gap-2 rounded-xl border border-dj-bordure bg-dj-fond/40 px-3 py-2 text-xs text-dj-texte-muet hover:text-dj-texte"
               >
-                {message.pieceJointe.type === "video" ? <Video size={14} /> : <FileText size={14} />}
+                {message.pieceJointe.type === "video" ? (
+                  <Video size={14} />
+                ) : message.pieceJointe.type === "audio" ? (
+                  <Music size={14} />
+                ) : (
+                  <FileText size={14} />
+                )}
                 <span className="max-w-[220px] truncate">{message.pieceJointe.nom}</span>
               </button>
             )}

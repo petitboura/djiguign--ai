@@ -1,30 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { AppWindow } from "lucide-react";
+import { BlocExpansible } from "./BlocExpansible";
 
-// Rend un bloc ```html ou ```widget du markdown dans un <iframe
-// sandbox="allow-scripts allow-forms allow-modals"> -- le modèle peut
-// générer un mini-outil autonome (calculateur, formulaire, mini-jeu) en
-// HTML/CSS/JS complet, affiché isolé du reste de la page (pas d'accès au
-// localStorage, cookies, ou DOM parent : voir attribut sandbox,
-// volontairement SANS "allow-same-origin" pour empêcher tout accès aux
-// données de session de l'utilisateur connecté).
-//
-// allow-modals (2026-07-20, ajouté après un test réel de Bourama) :
-// sans ça, alert()/confirm()/prompt() sont bloqués SILENCIEUSEMENT par le
-// navigateur -- aucune erreur console, le clic déclenche bien le script,
-// mais rien à l'écran. Symptôme trompeur ("le bouton ne fait rien") pour
-// un widget généré par le modèle qui utilise souvent alert() en premier
-// réflexe pour un exemple simple.
-//
-// Chargement fluide : l'iframe est montée immédiatement mais cachée
-// (opacity 0) tant que son onLoad n'est pas déclenché, pour éviter un
-// flash de contenu vide/blanc qui casserait la sensation de fluidité
-// pendant le reste du streaming.
-export function WidgetSandbox({ code }: { code: string }) {
-  const [charge, setCharge] = useState(false);
-
-  const document = `<!DOCTYPE html><html><head><meta charset="utf-8">
+// Bloc ```html ou ```widget du markdown -- le modèle peut générer un
+// mini-outil autonome (calculateur, formulaire, mini-jeu) en HTML/CSS/JS
+// complet. Se déroule dans le fil au clic (voir BlocExpansible.tsx) --
+// plus de panneau latéral ni d'ouverture automatique, retirés à la
+// demande de Bourama (2026-07-20) : retour au comportement replié/
+// déroulé dans le fil, avec un vrai plein écran (pas de division
+// d'écran) pour voir le widget en grand.
+export function construireDocumentWidget(code: string): string {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8">
     <style>
       html,body{margin:0;padding:12px;background:#161210;color:#F5ECE0;
         font-family:Inter,system-ui,sans-serif;}
@@ -84,19 +71,23 @@ export function WidgetSandbox({ code }: { code: string }) {
       })();
     </script>
     </body></html>`;
+}
 
+export function WidgetSandbox({ code }: { code: string }) {
   return (
-    <div className="my-3 overflow-hidden rounded-xl border border-dj-bordure bg-dj-surface">
-      <div className="border-b border-dj-bordure px-3 py-1.5 text-[11px] uppercase tracking-wide text-dj-texte-muet">
-        Widget interactif
-      </div>
-      <iframe
-        sandbox="allow-scripts allow-forms allow-modals"
-        srcDoc={document}
-        onLoad={() => setCharge(true)}
-        className={`h-72 w-full transition-opacity duration-500 ${charge ? "opacity-100" : "opacity-0"}`}
-        title="Widget interactif généré"
-      />
-    </div>
+    <BlocExpansible
+      titre="Widget interactif"
+      icone={AppWindow}
+      sousTitre="HTML"
+      texteACopier={code}
+      enfant={
+        <iframe
+          sandbox="allow-scripts allow-forms allow-modals"
+          srcDoc={construireDocumentWidget(code)}
+          className="h-96 w-full rounded-lg border border-dj-bordure"
+          title="Widget interactif"
+        />
+      }
+    />
   );
 }

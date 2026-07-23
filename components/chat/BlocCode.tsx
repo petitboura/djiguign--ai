@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Download, Maximize2, Minimize2, X } from "lucide-react";
 import hljs from "highlight.js";
 
 // Rendu des blocs ```lang ... ``` "code réel" du markdown (les langages
@@ -17,8 +17,24 @@ import hljs from "highlight.js";
 // texte source intact) et le bouton copier (qui a besoin du texte brut,
 // pas du HTML coloré). En gardant le texte brut jusqu'ici, les deux
 // restent simples.
+//
+// Téléchargement/plein écran ajoutés le 2026-07-23 (demande de Bourama :
+// même niveau de fonctionnalités qu'un fichier livré seul, voir
+// FichierCode.tsx/BlocExpansible.tsx -- mais PAS le même composant : un
+// bloc de code inline s'affiche directement dans le texte, jamais replié
+// derrière un clic comme un fichier joint). Téléchargement 100% côté
+// navigateur (Blob + lien temporaire) : contrairement à un fichier
+// généré, il n'y a pas d'URL Supabase ici, juste le texte brut du bloc.
+const EXTENSION_PAR_LANGAGE: Record<string, string> = {
+  python: "py", javascript: "js", typescript: "ts", xml: "html", css: "css",
+  bash: "sh", sql: "sql", java: "java", c: "c", cpp: "cpp", go: "go",
+  rust: "rs", php: "php", ruby: "rb", yaml: "yml", markdown: "md", ini: "toml",
+  json: "json",
+};
+
 export function BlocCode({ langage, code }: { langage: string; code: string }) {
   const [copie, setCopie] = useState(false);
+  const [pleinEcran, setPleinEcran] = useState(false);
 
   const html = useMemo(() => {
     try {
@@ -40,34 +56,88 @@ export function BlocCode({ langage, code }: { langage: string; code: string }) {
     });
   }
 
+  function telecharger() {
+    const extension = EXTENSION_PAR_LANGAGE[langage] || "txt";
+    const blob = new Blob([code], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const lien = document.createElement("a");
+    lien.href = url;
+    lien.download = `code.${extension}`;
+    lien.click();
+    URL.revokeObjectURL(url);
+  }
+
+  const blocPre = (
+    <pre className="overflow-x-auto px-4 py-3 font-mono text-[13px] leading-relaxed">
+      <code
+        className={`hljs language-${langage || "plaintext"}`}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </pre>
+  );
+
+  const boutonClasse =
+    "flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-dj-texte-muet transition-colors hover:text-dj-texte";
+
+  const boutonsActions = (
+    <>
+      <button onClick={copier} aria-label="Copier le code" className={boutonClasse}>
+        {copie ? (
+          <>
+            <Check size={12} /> Copié
+          </>
+        ) : (
+          <>
+            <Copy size={12} /> Copier
+          </>
+        )}
+      </button>
+      <button onClick={telecharger} aria-label="Télécharger le code" className={boutonClasse}>
+        <Download size={12} /> Télécharger
+      </button>
+      <button
+        onClick={() => setPleinEcran((v) => !v)}
+        aria-label={pleinEcran ? "Rétrécir" : "Agrandir"}
+        className={boutonClasse}
+      >
+        {pleinEcran ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+        {pleinEcran ? "Rétrécir" : "Agrandir"}
+      </button>
+    </>
+  );
+
+  if (pleinEcran) {
+    return (
+      <div className="fixed inset-0 z-50 flex animate-dj-fade-in flex-col bg-dj-fond">
+        <div className="flex items-center justify-between gap-2 border-b border-dj-bordure px-4 py-3">
+          <span className="font-mono text-[11px] uppercase tracking-wide text-dj-texte-muet">
+            {langage || "texte"}
+          </span>
+          <div className="flex shrink-0 items-center gap-2">
+            {boutonsActions}
+            <button
+              onClick={() => setPleinEcran(false)}
+              aria-label="Fermer"
+              className="flex items-center gap-1.5 rounded-lg border border-dj-bordure px-2.5 py-1.5 text-xs text-dj-texte-muet hover:text-dj-texte"
+            >
+              <X size={14} /> Fermer
+            </button>
+          </div>
+        </div>
+        <div className="min-h-0 flex-1 overflow-auto">{blocPre}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="dj-bloc-code group/code relative my-3 animate-dj-fade-in overflow-hidden rounded-xl border border-dj-bordure bg-[#100c09]">
       <div className="flex items-center justify-between border-b border-dj-bordure px-3 py-1.5">
         <span className="font-mono text-[11px] uppercase tracking-wide text-dj-texte-muet">
           {langage || "texte"}
         </span>
-        <button
-          onClick={copier}
-          aria-label="Copier le code"
-          className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-dj-texte-muet transition-colors hover:text-dj-texte"
-        >
-          {copie ? (
-            <>
-              <Check size={12} /> Copié
-            </>
-          ) : (
-            <>
-              <Copy size={12} /> Copier
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-2">{boutonsActions}</div>
       </div>
-      <pre className="overflow-x-auto px-4 py-3 font-mono text-[13px] leading-relaxed">
-        <code
-          className={`hljs language-${langage || "plaintext"}`}
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
-      </pre>
+      {blocPre}
     </div>
   );
 }

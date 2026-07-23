@@ -215,8 +215,9 @@ export async function transcrireAudioChat(fichier: File) {
 /**
  * Traitement d'une vidéo jointe à un message de chat -- voir
  * api/uploads.py:uploader_video_chat (extraction audio via Whisper +
- * frames via ffmpeg, analysées ensuite par Gemini). Rien n'est stocké,
- * la vidéo est traitée puis jetée côté backend.
+ * frames via ffmpeg, analysées ensuite par Gemini). Depuis le
+ * 2026-07-22, la vidéo originale est aussi gardée dans la bibliothèque
+ * (niveau utilisateur), pas seulement traitée puis jetée.
  */
 export async function uploaderVideoChat(fichier: File) {
   const resultat = await appelerApiFichier("/api/uploads/video-chat", fichier);

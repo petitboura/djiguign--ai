@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+
+let compteurMermaid = 0;
 
 // Rend un diagramme Mermaid (flowchart, sequence, gantt, state...) à
 // partir du texte source d'un bloc ```mermaid détecté dans BlocCode.tsx.
@@ -21,8 +23,8 @@ import { useEffect, useRef, useState } from "react";
 // pas, et re-render en boucle est coûteux).
 export function Mermaid({ definition }: { definition: string }) {
   const [svg, setSvg] = useState<string | null>(null);
-  const [erreur, setErreur] = useState(false);
-  const idRef = useRef(`mermaid-${Math.random().toString(36).slice(2)}`);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [sourceAffichee, setSourceAffichee] = useState(false);
 
   useEffect(() => {
     let annule = false;
@@ -43,16 +45,23 @@ export function Mermaid({ definition }: { definition: string }) {
           },
           fontFamily: "var(--font-inter), sans-serif",
         });
-        const { svg: svgRendu } = await mermaid.render(idRef.current, definition);
+        const { svg: svgRendu } = await mermaid.render(`mermaid-${++compteurMermaid}`, definition);
         if (!annule) {
           setSvg(svgRendu);
-          setErreur(false);
+          setErreur(null);
         }
-      } catch {
-        // Diagramme incomplet (encore en streaming) ou syntaxe invalide --
-        // pas d'erreur affichée tant qu'on n'a pas de version stable ;
-        // voir rendu ci-dessous, on garde juste le dernier SVG valide.
-        if (!annule) setErreur(true);
+      } catch (e) {
+        // 2026-07-20 (Bourama : "le mermaid ne marche même plus, il doit
+        // avoir une limite peut-être") -- jusqu'ici cette erreur était
+        // avalée en silence (juste "en cours de construction..." pour
+        // toujours), impossible de savoir si c'était : un diagramme
+        // encore incomplet en plein streaming (normal, transitoire), une
+        // vraie limite de mermaid (ex: maxTextSize/maxEdges dépassé sur
+        // un gros diagramme), ou une syntaxe que cette version de
+        // mermaid ne supporte pas. On affiche désormais le message
+        // d'erreur réel -- s'il reste affiché après la fin du streaming,
+        // ce N'EST PAS un diagramme incomplet.
+        if (!annule) setErreur(e instanceof Error ? e.message : String(e));
       }
     }, 400);
 
@@ -69,10 +78,27 @@ export function Mermaid({ definition }: { definition: string }) {
           className="animate-dj-fade-in [&_svg]:mx-auto"
           dangerouslySetInnerHTML={{ __html: svg }}
         />
+      ) : erreur ? (
+        <div className="space-y-2">
+          <p className="text-xs text-dj-texte-muet">
+            <span className="text-[#f87171]">Erreur de rendu du diagramme :</span> {erreur}
+          </p>
+          <button
+            onClick={() => setSourceAffichee((v) => !v)}
+            className="text-[11px] text-dj-accent-1 hover:text-dj-accent-2"
+          >
+            {sourceAffichee ? "Masquer" : "Voir"} le code source
+          </button>
+          {sourceAffichee && (
+            <pre className="overflow-x-auto rounded-lg bg-[#100c09] px-3 py-2 font-mono text-[12px] text-dj-texte-muet">
+              {definition}
+            </pre>
+          )}
+        </div>
       ) : (
         <div className="flex items-center gap-2 text-xs text-dj-texte-muet">
           <span className="h-2 w-2 animate-dj-glow rounded-full bg-dj-accent-1" />
-          {erreur ? "Diagramme en cours de construction..." : "Rendu du diagramme..."}
+          Rendu du diagramme...
         </div>
       )}
     </div>
