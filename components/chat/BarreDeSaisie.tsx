@@ -344,7 +344,7 @@ export function BarreDeSaisie({
               <button
                 onClick={arreterDictee}
                 aria-label="Arrêter la dictée"
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500 text-white"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-dj-accent-2 text-white"
               >
                 <Square size={14} />
               </button>
