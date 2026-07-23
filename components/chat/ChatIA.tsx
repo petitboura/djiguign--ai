@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { appelerApiStream, uploaderImageChat, uploaderDocumentChat, uploaderVideoChat } from "@/lib/api";
+import { useNotificationsPush, proposerNotificationsPushUneFois } from "@/lib/useNotificationsPush";
 import { BulleMessage, MessageAffiche } from "./BulleMessage";
 import { BarreDeSaisie, LongueurReponse, LocalisationJointe } from "./BarreDeSaisie";
 import { PopupFeedback } from "./PopupFeedback";
@@ -36,6 +37,7 @@ export function ChatIA({
   onMessagesChange?: (nbMessages: number) => void;
 }) {
   const [messages, setMessages] = useState<MessageAffiche[]>(messagesInitiaux);
+  const { activer: activerNotificationsPush } = useNotificationsPush();
   const [genEnCours, setGenEnCours] = useState(false);
   const [statuts, setStatuts] = useState<{ texte: string; etat: EtatStatut }[]>([]);
   const [confirmation, setConfirmation] = useState<{
@@ -118,11 +120,33 @@ export function ChatIA({
     fichier: File | null,
     localisation: LocalisationJointe = null
   ) {
+    // Demande de Bourama (2026-07-22) : proposer l'activation des
+    // notifications push dès la première vraie action (envoyer un
+    // message = utiliser l'IA), pas au chargement de la page -- voir
+    // proposerNotificationsPushUneFois pour le garde-fou "une seule
+    // fois par appareil, jamais si déjà répondu avant".
+    proposerNotificationsPushUneFois(activerNotificationsPush);
+
+    const typePieceJointe: "image" | "document" | "video" | null = fichier
+      ? fichier.type.startsWith("image/")
+        ? "image"
+        : fichier.type.startsWith("video/")
+        ? "video"
+        : "document"
+      : null;
     const messageUtilisateur: MessageAffiche = {
       id: null,
       role: "user",
       content: texte,
       created_at: new Date().toISOString(),
+      pieceJointe:
+        fichier && typePieceJointe
+          ? {
+              nom: fichier.name,
+              type: typePieceJointe,
+              previewUrl: URL.createObjectURL(fichier),
+            }
+          : null,
     };
     const historiquePourApi = messages.map((m) => ({ role: m.role, content: m.content }));
 
@@ -147,13 +171,8 @@ export function ChatIA({
     let imageUrl: string | null = null;
     let imagesBase64: string[] | null = null;
     let texteEnrichi = texte;
-    let typeFichier: "image" | "document" | "video" | null = null;
+    const typeFichier = typePieceJointe;
     if (fichier) {
-      typeFichier = fichier.type.startsWith("image/")
-        ? "image"
-        : fichier.type.startsWith("video/")
-        ? "video"
-        : "document";
       try {
         if (typeFichier === "image") {
           imageUrl = await uploaderImageChat(fichier);

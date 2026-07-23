@@ -7,7 +7,7 @@ import remarkMath from "remark-math";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import rehypeKatex from "rehype-katex";
-import { Copy, RotateCw, Pencil, Volume2, ThumbsUp, ThumbsDown, Check, MessageSquareQuote } from "lucide-react";
+import { Copy, RotateCw, Pencil, Volume2, ThumbsUp, ThumbsDown, Check, MessageSquareQuote, FileText, Video, X } from "lucide-react";
 import { formaterHeure } from "@/lib/formatageHeure";
 import { BlocCode } from "./BlocCode";
 import { Mermaid } from "./Mermaid";
@@ -17,7 +17,9 @@ import { WidgetSandbox } from "./WidgetSandbox";
 import { ImageMessage } from "./ImageMessage";
 import { TableauMessage } from "./TableauMessage";
 import { FichierChip, extensionFichier } from "./FichierChip";
+import { FichierCode, extensionCode } from "./FichierCode";
 import { LecteurMedia, typeMedia } from "./LecteurMedia";
+import { LinkPreview } from "./LinkPreview";
 
 // Extrait le texte brut d'un enfant React -- nécessaire pour récupérer le
 // contenu source d'un bloc de code (```lang ... ```) tel que ReactMarkdown
@@ -61,6 +63,13 @@ export interface MessageAffiche {
   role: "user" | "assistant";
   content: string;
   created_at?: string;
+  // Ajouté 2026-07-20 (bug trouvé par Bourama : aucun aperçu du fichier
+  // envoyé, ni avant ni après envoi) -- previewUrl est une URL locale
+  // (URL.createObjectURL, voir BarreDeSaisie.tsx) pour une image, donc
+  // valable seulement le temps de la session ; pas besoin de la faire
+  // survivre à un rechargement de page, juste de montrer ce qui a été
+  // envoyé dans le fil de la conversation en cours.
+  pieceJointe?: { nom: string; type: "image" | "document" | "video"; previewUrl?: string } | null;
 }
 
 // Voir MIGRATION_CHAT_VERS_NEXTJS.md, section 3.1 :
@@ -82,6 +91,7 @@ export function BulleMessage({
   onExpliquerSelection?: (texteSelectionne: string) => void;
 }) {
   const [copie, setCopie] = useState(false);
+  const [pieceJointeOuverte, setPieceJointeOuverte] = useState(false);
   const [enEdition, setEnEdition] = useState(false);
   const [texteEdition, setTexteEdition] = useState(message.content);
   const estUtilisateur = message.role === "user";
@@ -157,6 +167,29 @@ export function BulleMessage({
             : "max-w-[80%] px-1 py-1 text-[15px] leading-relaxed text-dj-texte"
         }
       >
+        {message.pieceJointe && (
+          <div className="mb-2">
+            {message.pieceJointe.type === "image" && message.pieceJointe.previewUrl ? (
+              <button
+                onClick={() => setPieceJointeOuverte(true)}
+                aria-label="Agrandir l'image"
+                className="block max-h-48 overflow-hidden rounded-xl border border-dj-bordure"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- aperçu local (URL.createObjectURL), pas un asset à optimiser */}
+                <img src={message.pieceJointe.previewUrl} alt={message.pieceJointe.nom} className="max-h-48 w-auto" />
+              </button>
+            ) : (
+              <button
+                onClick={() => message.pieceJointe?.previewUrl && window.open(message.pieceJointe.previewUrl, "_blank")}
+                aria-label="Ouvrir le fichier"
+                className="flex w-fit items-center gap-2 rounded-xl border border-dj-bordure bg-dj-fond/40 px-3 py-2 text-xs text-dj-texte-muet hover:text-dj-texte"
+              >
+                {message.pieceJointe.type === "video" ? <Video size={14} /> : <FileText size={14} />}
+                <span className="max-w-[220px] truncate">{message.pieceJointe.nom}</span>
+              </button>
+            )}
+          </div>
+        )}
         {/* Rendu Markdown unique et cohérent (gras/liens/tableaux/listes en
             une seule fois) -- voir MIGRATION_CHAT_VERS_NEXTJS.md 1.1 : ceci
             règle définitivement le bug hérité de Streamlit (bloc HTML brut
@@ -222,18 +255,26 @@ export function BulleMessage({
               table({ children }) {
                 return <TableauMessage>{children}</TableauMessage>;
               },
-              // Lien : bascule vers une carte fichier ou un lecteur média
-              // si l'extension de l'URL le justifie, sinon lien normal
-              // (couleur accent + underline directement ici, pour ne pas
-              // dépendre d'une règle globale qui entrerait en conflit
-              // avec le no-underline de FichierChip sur le même <a>).
+              // Lien : bascule vers une carte fichier, un lecteur média, ou
+              // un aperçu (LinkPreview) selon ce que l'URL justifie -- le
+              // lien texte brut est désormais le CAS DE REPLI, plus le
+              // défaut (demande de Bourama, 2026-07-20 : un aperçu partout,
+              // comme sur les autres plateformes, le lien nu seulement si
+              // rien d'autre n'est exploitable).
               a({ href, children }) {
                 if (!href) return <>{children}</>;
                 const media = typeMedia(href);
                 if (media) return <LecteurMedia href={href} type={media} />;
+                if (extensionCode(href)) {
+                  return <FichierCode href={href} nom={texteBrut(children) || href} />;
+                }
                 if (extensionFichier(href)) {
                   return <FichierChip href={href} nom={texteBrut(children) || href} />;
                 }
+                if (/^https?:\/\//i.test(href)) {
+                  return <LinkPreview href={href} texteLien={texteBrut(children) || href} />;
+                }
+                // mailto:/tel:/ancres internes -- un aperçu n'a pas de sens ici.
                 return (
                   <a
                     href={href}
@@ -311,6 +352,19 @@ export function BulleMessage({
           </>
         )}
       </div>
+
+      {pieceJointeOuverte && message.pieceJointe?.previewUrl && (
+        <div
+          className="fixed inset-0 z-50 flex animate-dj-fade-in items-center justify-center bg-black/85 p-6"
+          onClick={() => setPieceJointeOuverte(false)}
+        >
+          <button aria-label="Fermer" className="absolute right-5 top-5 text-dj-texte-muet hover:text-dj-texte">
+            <X size={22} />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={message.pieceJointe.previewUrl} alt="" className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain" />
+        </div>
+      )}
     </div>
   );
 }

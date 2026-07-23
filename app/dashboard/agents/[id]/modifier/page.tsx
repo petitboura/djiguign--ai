@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { appelerApi, appelerApiFichier } from "@/lib/api";
+import { appelerApi, appelerApiFichier, ajouterFichierBibliotheque } from "@/lib/api";
 import { TopBar } from "@/components/TopBar";
 import { BoutonRetour } from "@/components/BoutonRetour";
 import { BoutonAccueil } from "@/components/BoutonAccueil";
@@ -34,9 +34,18 @@ type AgentEditable = {
   placeholder_saisie: string;
   actif: boolean;
   categorie_id: string | null;
+  profil_utilisateur_schema: { nom: string; description: string }[];
 };
 
 type DocumentIndexe = { nom_stockage: string; nom_affiche: string; url: string };
+type FichierBiblio = {
+  id: string;
+  nom_fichier: string;
+  type_mime: string;
+  description: string | null;
+  url_publique: string;
+  created_at: string;
+};
 
 export default function PageModifierAgent() {
   const router = useRouter();
@@ -68,9 +77,32 @@ export default function PageModifierAgent() {
   const [categorie, setCategorie] = useState<Categorie | null>(null);
   const [popupCategorieOuvert, setPopupCategorieOuvert] = useState(false);
 
+  // Même fonctionnalité que la page de création (2026-07-21), voir
+  // ChampProfilUtilisateur côté api/agents.py.
+  const [profilChamps, setProfilChamps] = useState<
+    { nom: string; description: string }[]
+  >([]);
+  function ajouterChampProfil() {
+    setProfilChamps((prev) => [...prev, { nom: "", description: "" }]);
+  }
+  function majChampProfil(i: number, champ: "nom" | "description", valeur: string) {
+    setProfilChamps((prev) =>
+      prev.map((c, idx) => (idx === i ? { ...c, [champ]: valeur } : c))
+    );
+  }
+  function supprimerChampProfil(i: number) {
+    setProfilChamps((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
   const [documents, setDocuments] = useState<DocumentIndexe[] | null>(null);
   const [nouveauPdf, setNouveauPdf] = useState<File | null>(null);
   const [envoiPdf, setEnvoiPdf] = useState(false);
+
+  const [fichiersBiblio, setFichiersBiblio] = useState<FichierBiblio[] | null>(null);
+  const [nouveauFichierBiblio, setNouveauFichierBiblio] = useState<File | null>(null);
+  const [titreFichierBiblio, setTitreFichierBiblio] = useState("");
+  const [descriptionFichierBiblio, setDescriptionFichierBiblio] = useState("");
+  const [envoiBiblio, setEnvoiBiblio] = useState(false);
 
   const [enregistrement, setEnregistrement] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -101,6 +133,7 @@ export default function PageModifierAgent() {
         setLienNotion(r.notion_page_id || "");
         setTexteLibre(r.texte_libre || "");
         setActif(r.actif);
+        setProfilChamps(r.profil_utilisateur_schema || []);
         if (r.categorie_id) {
           const idCategorie = r.categorie_id;
           chargerCategories()
@@ -115,6 +148,7 @@ export default function PageModifierAgent() {
       .finally(() => setChargement(false));
 
     chargerDocuments();
+    chargerBibliotheque();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, agentId]);
 
@@ -122,6 +156,12 @@ export default function PageModifierAgent() {
     appelerApi(`/api/agents/${agentId}/documents`)
       .then((r: DocumentIndexe[]) => setDocuments(r))
       .catch(() => setDocuments([]));
+  }
+
+  function chargerBibliotheque() {
+    appelerApi(`/api/agents/${agentId}/bibliotheque`)
+      .then((r: FichierBiblio[]) => setFichiersBiblio(r))
+      .catch(() => setFichiersBiblio([]));
   }
 
   async function enregistrer(e: React.FormEvent) {
@@ -144,6 +184,9 @@ export default function PageModifierAgent() {
           placeholder_saisie: placeholderSaisie,
           actif,
           categorie_id: categorie?.id,
+          profil_utilisateur_schema: profilChamps
+            .filter((c) => c.nom.trim())
+            .map((c) => ({ nom: c.nom.trim(), description: c.description.trim() })),
         }),
       });
       setMessage("IA mise à jour.");
@@ -175,6 +218,37 @@ export default function PageModifierAgent() {
         method: "DELETE",
       });
       chargerDocuments();
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : "Échec de la suppression.");
+    }
+  }
+
+  async function ajouterFichierBiblio() {
+    if (!nouveauFichierBiblio || !descriptionFichierBiblio.trim()) return;
+    setEnvoiBiblio(true);
+    try {
+      await ajouterFichierBibliotheque(
+        agentId,
+        nouveauFichierBiblio,
+        descriptionFichierBiblio.trim(),
+        titreFichierBiblio.trim()
+      );
+      setNouveauFichierBiblio(null);
+      setTitreFichierBiblio("");
+      setDescriptionFichierBiblio("");
+      chargerBibliotheque();
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : "Échec de l'ajout du fichier.");
+    } finally {
+      setEnvoiBiblio(false);
+    }
+  }
+
+  async function supprimerFichierBiblio(id: string, nom: string) {
+    if (!window.confirm(`Supprimer « ${nom} » de la bibliothèque ?`)) return;
+    try {
+      await appelerApi(`/api/agents/${agentId}/bibliotheque/${id}`, { method: "DELETE" });
+      chargerBibliotheque();
     } catch (e) {
       window.alert(e instanceof Error ? e.message : "Échec de la suppression.");
     }
@@ -400,6 +474,61 @@ export default function PageModifierAgent() {
             )}
           </section>
 
+          <section className="flex flex-col gap-4 rounded-2xl border border-dj-bordure bg-dj-surface p-6">
+            <h2 className="font-display text-base font-bold text-dj-texte">
+              Profil utilisateur
+            </h2>
+            <p className="text-sm text-dj-texte-muet">
+              Informations que ton IA retient automatiquement sur les personnes qui
+              lui parlent (utilisateurs connectés). Vide = fonctionnalité désactivée.
+            </p>
+
+            {profilChamps.map((champ, i) => (
+              <div
+                key={i}
+                className="flex flex-col gap-2 rounded-xl border border-dj-bordure bg-dj-surface-haute p-4 sm:flex-row sm:items-start"
+              >
+                <div className="flex-1">
+                  <label className="text-xs font-semibold text-dj-texte-muet">
+                    Nom du champ
+                  </label>
+                  <input
+                    value={champ.nom}
+                    onChange={(e) => majChampProfil(i, "nom", e.target.value)}
+                    placeholder="Ex: niveau_scolaire"
+                    className={champClasse}
+                  />
+                </div>
+                <div className="flex-[2]">
+                  <label className="text-xs font-semibold text-dj-texte-muet">
+                    Description (guide l&apos;IA sur quoi chercher)
+                  </label>
+                  <input
+                    value={champ.description}
+                    onChange={(e) => majChampProfil(i, "description", e.target.value)}
+                    placeholder="Ex: Niveau étudié actuellement (collège, lycée, prépa...)"
+                    className={champClasse}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => supprimerChampProfil(i)}
+                  className="mt-1 self-start rounded-full border border-dj-bordure px-3 py-2 text-xs text-dj-texte-muet transition-colors hover:border-[#F87171] hover:text-[#F87171] sm:mt-6"
+                >
+                  Retirer
+                </button>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={ajouterChampProfil}
+              className="self-start rounded-full border border-dj-bordure px-4 py-2 text-sm text-dj-texte transition-colors hover:border-dj-bordure-forte"
+            >
+              + Ajouter un champ
+            </button>
+          </section>
+
           {erreur && <p className="text-sm text-[#F87171]">{erreur}</p>}
 
           <div className="flex items-center gap-3">
@@ -462,6 +591,80 @@ export default function PageModifierAgent() {
             >
               {envoiPdf ? "Envoi…" : "Ajouter"}
             </button>
+          </div>
+        </section>
+
+        <section className="mt-10 flex flex-col gap-4">
+          <h2 className="font-display text-lg font-bold text-dj-texte">
+            Bibliothèque (images, audio, vidéo, PDF...)
+          </h2>
+          <p className="text-sm text-dj-texte-muet">
+            Un fichier ajouté ici que ton IA peut retrouver et donner pendant une
+            conversation. Un PDF est en plus automatiquement analysé pour enrichir les
+            réponses de l&apos;IA, comme ci-dessus.
+          </p>
+
+          {fichiersBiblio === null && <p className="text-sm text-dj-texte-muet">Chargement...</p>}
+          {fichiersBiblio?.length === 0 && (
+            <p className="text-sm text-dj-texte-muet">Aucun fichier dans la bibliothèque.</p>
+          )}
+          {fichiersBiblio && fichiersBiblio.length > 0 && (
+            <div className="flex flex-col gap-2">
+              {fichiersBiblio.map((f) => (
+                <div
+                  key={f.id}
+                  className="flex items-center justify-between rounded-xl border border-dj-bordure bg-dj-surface px-4 py-3"
+                >
+                  <a
+                    href={f.url_publique}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-dj-accent-1 hover:text-dj-accent-2"
+                  >
+                    {f.description || f.nom_fichier}
+                  </a>
+                  <button
+                    onClick={() => supprimerFichierBiblio(f.id, f.description || f.nom_fichier)}
+                    className="text-xs text-dj-texte-muet transition-colors hover:text-[#F87171]"
+                  >
+                    Supprimer
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3">
+            <textarea
+              placeholder="Description (obligatoire) : de quoi parle ce fichier, dans quel contexte l'IA doit le proposer ?"
+              value={descriptionFichierBiblio}
+              onChange={(e) => setDescriptionFichierBiblio(e.target.value)}
+              rows={2}
+              className="rounded-2xl border border-dj-bordure bg-dj-surface px-4 py-2 text-sm text-dj-texte outline-none focus:border-dj-bordure-forte"
+            />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <input
+                type="text"
+                placeholder="Titre (optionnel)"
+                value={titreFichierBiblio}
+                onChange={(e) => setTitreFichierBiblio(e.target.value)}
+                className="rounded-full border border-dj-bordure bg-dj-surface px-4 py-2 text-sm text-dj-texte outline-none focus:border-dj-bordure-forte sm:w-1/3"
+              />
+              <input
+                type="file"
+                accept="application/pdf,image/jpeg,image/png,image/webp,audio/mpeg,audio/wav,audio/ogg,video/mp4,video/webm,video/quicktime"
+                onChange={(e) => setNouveauFichierBiblio(e.target.files?.[0] ?? null)}
+                className="text-sm text-dj-texte file:mr-3 file:rounded-full file:border file:border-dj-bordure file:bg-dj-surface-haute file:px-4 file:py-2 file:text-xs file:text-dj-texte hover:file:border-dj-bordure-forte"
+              />
+              <button
+                type="button"
+                onClick={ajouterFichierBiblio}
+                disabled={!nouveauFichierBiblio || !descriptionFichierBiblio.trim() || envoiBiblio}
+                className="rounded-full border border-dj-bordure px-4 py-2 text-xs text-dj-texte transition-colors hover:border-dj-bordure-forte disabled:opacity-50"
+              >
+                {envoiBiblio ? "Envoi…" : "Ajouter"}
+              </button>
+            </div>
           </div>
         </section>
 

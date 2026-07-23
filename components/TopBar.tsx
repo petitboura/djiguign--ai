@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { NotificationsCloche } from "@/components/NotificationsCloche";
+import { NotificationsPushCloche } from "@/components/NotificationsPushCloche";
 import { BoutonInstaller } from "@/components/BoutonInstaller";
 
 // Nav de la PLATEFORME, volontairement différente du Header de
@@ -49,6 +50,7 @@ export function TopBar() {
           <div className="flex items-center gap-3">
             <BoutonInstaller />
             <NotificationsCloche />
+            <NotificationsPushCloche />
             <Link
               href="/dashboard"
               className={

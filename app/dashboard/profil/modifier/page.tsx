@@ -9,6 +9,7 @@ import { TopBar } from "@/components/TopBar";
 import { BoutonRetour } from "@/components/BoutonRetour";
 import { BoutonAccueil } from "@/components/BoutonAccueil";
 import { ChampImage } from "@/components/ChampImage";
+import { NotificationsPushToggle } from "@/components/NotificationsPushToggle";
 
 // Formulaire d'édition de profil, déplacé depuis app/dashboard/page.tsx
 // le 2026-07-12 (Bourama : "Mon espace" doit maintenant ressembler au
@@ -143,6 +144,8 @@ export default function PageModifierProfil() {
             {messageProfil && <span className="text-sm text-dj-texte-muet">{messageProfil}</span>}
           </div>
         </form>
+
+        <NotificationsPushToggle />
 
         <SectionZoneDanger userId={session.user.id} />
       </main>
