@@ -34,6 +34,15 @@ export function Mermaid({ definition }: { definition: string }) {
         mermaid.initialize({
           startOnLoad: false,
           theme: "dark",
+          // Sans ça, mermaid ne lève JAMAIS d'exception sur une erreur de
+          // syntaxe : render() "réussit" quand même, avec un SVG contenant
+          // son propre dessin d'erreur générique (icône bombe "Syntax
+          // error in text", sans aucun détail exploitable). Repéré par
+          // Bourama en test réel -- le catch plus bas ne se déclenchait
+          // jamais pour cette raison précise. Avec cette option (mermaid
+          // 10.3+), render() lève une vraie exception avec le message
+          // d'erreur réel du parseur.
+          suppressErrorRendering: true,
           themeVariables: {
             background: "#161210",
             primaryColor: "#1E1813",
