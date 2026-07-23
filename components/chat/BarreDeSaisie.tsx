@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Pin, Mic, Square, AudioLines, ArrowUp, X, MapPin, Github, FileText, Video } from "lucide-react";
-import { transcrireAudioChat, statutConnexion, demarrerConnexion } from "@/lib/api";
+import { transcrireAudioChat, statutConnexion, demarrerConnexion, depotsGithub } from "@/lib/api";
 
 export type LongueurReponse = "courte" | "moyenne" | "longue";
 export type LocalisationJointe = { latitude: number; longitude: number } | null;
@@ -90,6 +90,25 @@ export function BarreDeSaisie({
   // connu (chargement), évite un flash "non connecté" au premier rendu.
   const [githubConnecte, setGithubConnecte] = useState<boolean | null>(null);
   const [githubEnCours, setGithubEnCours] = useState(false);
+  // Sélecteur de dépôts (2026-07-22) : ouvert au clic quand déjà connecté
+  // -- cliquer un dépôt insère son lien dans le champ, pas d'envoi
+  // automatique (la personne garde la main pour écrire sa question).
+  const [depots, setDepots] = useState<{ nom_complet: string; prive: boolean; description: string | null }[] | null>(
+    null
+  );
+  const [selecteurOuvert, setSelecteurOuvert] = useState(false);
+  const selecteurRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!selecteurOuvert) return;
+    function gererClicExterieur(e: MouseEvent) {
+      if (selecteurRef.current && !selecteurRef.current.contains(e.target as Node)) {
+        setSelecteurOuvert(false);
+      }
+    }
+    document.addEventListener("mousedown", gererClicExterieur);
+    return () => document.removeEventListener("mousedown", gererClicExterieur);
+  }, [selecteurOuvert]);
 
   useEffect(() => {
     statutConnexion("github")
@@ -97,21 +116,49 @@ export function BarreDeSaisie({
       .catch(() => setGithubConnecte(false));
   }, []);
 
-  async function connecterGithub() {
-    if (githubConnecte) return; // déjà connecté, rien à faire ici
-    setGithubEnCours(true);
-    try {
-      const { url, erreur } = await demarrerConnexion("github", agentId);
-      if (url) {
-        window.location.href = url;
-      } else {
-        alert(erreur || "Connexion GitHub indisponible pour le moment.");
+  async function cliquerGithub() {
+    if (!githubConnecte) {
+      setGithubEnCours(true);
+      try {
+        const { url, erreur } = await demarrerConnexion("github", agentId);
+        if (url) {
+          window.location.href = url;
+        } else {
+          alert(erreur || "Connexion GitHub indisponible pour le moment.");
+          setGithubEnCours(false);
+        }
+      } catch (e) {
+        // Corrigé le 2026-07-23 : masquait la vraie cause (erreur réseau,
+        // 401/500 côté backend, session expirée...) derrière le même
+        // texte générique à chaque fois -- même correction que pour la
+        // dictée vocale et l'upload de fichiers plus tôt dans la session.
+        alert(e instanceof Error ? e.message : "Connexion GitHub indisponible pour le moment.");
         setGithubEnCours(false);
       }
-    } catch {
-      alert("Connexion GitHub indisponible pour le moment.");
-      setGithubEnCours(false);
+      return;
     }
+
+    // Déjà connecté : ouvre/ferme le sélecteur de dépôts, en chargeant la
+    // liste au premier clic seulement (pas re-fetché à chaque ouverture).
+    setSelecteurOuvert((prec) => !prec);
+    if (depots === null) {
+      setGithubEnCours(true);
+      try {
+        const { depots: liste, erreur } = await depotsGithub();
+        setDepots(liste);
+        if (erreur) alert(erreur);
+      } catch (e) {
+        setDepots([]);
+        alert(e instanceof Error ? e.message : "Impossible de récupérer tes dépôts pour le moment.");
+      } finally {
+        setGithubEnCours(false);
+      }
+    }
+  }
+
+  function choisirDepot(nomComplet: string) {
+    setTexte((prec) => (prec.trim() ? `${prec} https://github.com/${nomComplet}` : `https://github.com/${nomComplet}`));
+    setSelecteurOuvert(false);
   }
 
   function pasDisponible() {
@@ -288,23 +335,58 @@ export function BarreDeSaisie({
             {/* Connexion GitHub (2026-07-22) : icône de marque, couleurs et
                 style de l'app (dj-texte-muet/dj-accent-1), pas les couleurs
                 GitHub -- voir connexions/oauth_generique.py côté backend.
-                Point vert discret quand déjà connecté. */}
-            <button
-              onClick={connecterGithub}
-              disabled={githubEnCours}
-              aria-label={githubConnecte ? "Connecté à GitHub" : "Connecter GitHub"}
-              title={githubConnecte ? "Connecté à GitHub" : "Connecter GitHub"}
-              className={
-                githubConnecte
-                  ? "relative text-dj-accent-1 transition-colors"
-                  : "relative text-dj-texte-muet transition-colors hover:text-dj-texte disabled:opacity-60"
-              }
-            >
-              <Github size={18} />
-              {githubConnecte && (
-                <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-green-500" />
+                Point vert discret quand déjà connecté. Une fois connecté,
+                le clic ouvre un sélecteur de dépôts (au lieu de ne rien
+                faire) -- cliquer un dépôt insère son lien dans le champ. */}
+            <div className="relative" ref={selecteurRef}>
+              <button
+                onClick={cliquerGithub}
+                disabled={githubEnCours}
+                aria-label={githubConnecte ? "Choisir un dépôt GitHub" : "Connecter GitHub"}
+                title={githubConnecte ? "Choisir un dépôt GitHub" : "Connecter GitHub"}
+                className={
+                  githubConnecte
+                    ? "relative text-dj-accent-1 transition-colors"
+                    : "relative text-dj-texte-muet transition-colors hover:text-dj-texte disabled:opacity-60"
+                }
+              >
+                <Github size={18} />
+                {githubConnecte && (
+                  <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-green-500" />
+                )}
+              </button>
+
+              {selecteurOuvert && (
+                <div className="absolute bottom-full left-0 z-30 mb-2 max-h-64 w-72 overflow-y-auto rounded-xl border border-dj-bordure bg-dj-surface-haute p-1 shadow-xl">
+                  {depots === null && (
+                    <p className="px-3 py-2 text-xs text-dj-texte-muet">Chargement de tes dépôts...</p>
+                  )}
+                  {depots?.length === 0 && (
+                    <p className="px-3 py-2 text-xs text-dj-texte-muet">Aucun dépôt trouvé.</p>
+                  )}
+                  {depots?.map((d) => (
+                    <button
+                      key={d.nom_complet}
+                      type="button"
+                      onClick={() => choisirDepot(d.nom_complet)}
+                      className="block w-full rounded-lg px-3 py-2 text-left text-sm text-dj-texte transition-colors hover:bg-dj-surface"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        {d.nom_complet}
+                        {d.prive && (
+                          <span className="rounded bg-dj-surface px-1.5 py-0.5 text-[10px] text-dj-texte-muet">
+                            privé
+                          </span>
+                        )}
+                      </span>
+                      {d.description && (
+                        <span className="line-clamp-1 text-xs text-dj-texte-muet">{d.description}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
               )}
-            </button>
+            </div>
 
             {/* Position (2026-07-20) : jointe/retirée à chaque message,
                 jamais capturée automatiquement -- clic = permission navigateur. */}

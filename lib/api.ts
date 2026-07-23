@@ -244,3 +244,16 @@ export async function demarrerConnexion(service: string, agentId?: string) {
   const resultat = await appelerApi(chemin);
   return resultat as { url: string | null; erreur?: string };
 }
+
+/**
+ * Liste les dépôts GitHub (publics et privés) de la personne connectée --
+ * voir api/connexions.py:depots_github, utilisé par le sélecteur de dépôt
+ * dans BarreDeSaisie.tsx.
+ */
+export async function depotsGithub() {
+  const resultat = await appelerApi("/api/connexions/github/depots");
+  return resultat as {
+    depots: { nom_complet: string; prive: boolean; description: string | null; url: string }[];
+    erreur?: string;
+  };
+}
