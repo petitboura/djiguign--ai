@@ -7,6 +7,30 @@ import { transcrireAudioChat, statutConnexion, demarrerConnexion, depotsGithub }
 export type LongueurReponse = "courte" | "moyenne" | "longue";
 export type LocalisationJointe = { latitude: number; longitude: number } | null;
 
+const REGEX_URL = /(https?:\/\/[^\s]+)/g;
+
+// Découpe le texte en segments {texte, lien} pour le calque de
+// superposition -- coloration/soulignement des liens PENDANT la frappe
+// (avant envoi), demande explicite de Bourama (2026-07-23) : un
+// <textarea> natif ne peut pas colorer une sous-partie de son propre
+// texte, donc on superpose un calque en lecture seule qui, lui, peut
+// styler chaque morceau, pendant que le vrai <textarea> (texte rendu
+// invisible via text-transparent) reste en dessous pour la saisie/le
+// curseur/la sélection réels. Voir le rendu plus bas pour la
+// synchronisation de défilement entre les deux calques.
+function segmenterTexteAvecLiens(texte: string): { texte: string; lien: boolean }[] {
+  const segments: { texte: string; lien: boolean }[] = [];
+  let dernierIndex = 0;
+  for (const trouve of texte.matchAll(REGEX_URL)) {
+    const index = trouve.index ?? 0;
+    if (index > dernierIndex) segments.push({ texte: texte.slice(dernierIndex, index), lien: false });
+    segments.push({ texte: trouve[0], lien: true });
+    dernierIndex = index + trouve[0].length;
+  }
+  if (dernierIndex < texte.length) segments.push({ texte: texte.slice(dernierIndex), lien: false });
+  return segments;
+}
+
 // Types acceptés par le sélecteur de fichier -- élargi le 2026-07-20 pour
 // couvrir images (Gemini vision), documents PDF/Word/Excel (extraction
 // texte) ET vidéo (audio transcrit + frames analysées par Gemini), voir
@@ -44,6 +68,7 @@ export function BarreDeSaisie({
   const [imageOuverte, setImageOuverte] = useState(false);
   const inputFichierRef = useRef<HTMLInputElement>(null);
   const zoneTexteRef = useRef<HTMLTextAreaElement>(null);
+  const calqueRef = useRef<HTMLDivElement>(null);
 
   // Aperçu du fichier joint AVANT envoi (2026-07-20, bug trouvé par
   // Bourama : jusqu'ici juste le nom du fichier en texte, aucune vignette).
@@ -305,23 +330,56 @@ export function BarreDeSaisie({
       {/* Rectangle à coins arrondis (plus une pilule ovale complète), tous
           les éléments alignés en bas -- voir section 3.3. */}
       <div className="rounded-3xl border border-dj-bordure bg-dj-surface-haute px-4 py-3 focus-within:border-dj-bordure-forte">
-        <textarea
-          ref={zoneTexteRef}
-          value={texte}
-          onChange={(e) => {
-            setTexte(e.target.value);
-            ajusterHauteurTexte();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              envoyer();
-            }
-          }}
-          placeholder={transcriptionEnCours ? "Transcription en cours..." : "Pose ta question..."}
-          rows={1}
-          className="max-h-40 w-full resize-none overflow-y-auto bg-transparent text-[15px] text-dj-texte outline-none placeholder:text-dj-texte-muet"
-        />
+        <div className="relative">
+          {/* Calque de couleur -- lecture seule, non interactif
+              (pointer-events-none), affiche EXACTEMENT le même texte que
+              le textarea réel juste au-dessus dans le DOM (même police/
+              taille/interligne/césure), avec les liens en dj-accent-1
+              souligné. Le vrai texte du textarea est rendu invisible
+              (text-transparent, voir plus bas) -- c'est ce calque qui
+              porte toute la couleur visible. */}
+          <div
+            ref={calqueRef}
+            aria-hidden
+            className="pointer-events-none absolute inset-0 max-h-40 overflow-hidden whitespace-pre-wrap break-words text-[15px] leading-normal text-dj-texte"
+          >
+            {texte
+              ? segmenterTexteAvecLiens(texte).map((s, i) =>
+                  s.lien ? (
+                    <span key={i} className="text-dj-accent-1 underline">
+                      {s.texte}
+                    </span>
+                  ) : (
+                    <span key={i}>{s.texte}</span>
+                  )
+                )
+              : null}
+            {/* Espace de fin pour que le calque ait la même hauteur que le
+                textarea même quand le texte se termine par un retour à la
+                ligne (sinon scrollHeight des deux diverge légèrement). */}
+            {texte.endsWith("\n") && "\u200b"}
+          </div>
+          <textarea
+            ref={zoneTexteRef}
+            value={texte}
+            onChange={(e) => {
+              setTexte(e.target.value);
+              ajusterHauteurTexte();
+            }}
+            onScroll={(e) => {
+              if (calqueRef.current) calqueRef.current.scrollTop = e.currentTarget.scrollTop;
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                envoyer();
+              }
+            }}
+            placeholder={transcriptionEnCours ? "Transcription en cours..." : "Pose ta question..."}
+            rows={1}
+            className="relative max-h-40 w-full resize-none overflow-y-auto bg-transparent text-[15px] leading-normal text-transparent caret-dj-texte outline-none placeholder:text-dj-texte-muet"
+          />
+        </div>
 
         <div className="mt-2 flex items-center justify-between">
           <div className="flex items-center gap-3">
