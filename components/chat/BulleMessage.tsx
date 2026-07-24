@@ -278,7 +278,7 @@ export function BulleMessage({
                   return <FichierChip href={href} nom={texteBrut(children) || href} />;
                 }
                 if (/^https?:\/\//i.test(href)) {
-                  return <LinkPreview href={href} texteLien={texteBrut(children) || href} />;
+                  return <LinkPreview href={href} texteLien={texteBrut(children) || href} compact={estUtilisateur} />;
                 }
                 // mailto:/tel:/ancres internes -- un aperçu n'a pas de sens ici.
                 return (

@@ -199,7 +199,7 @@ export async function uploaderImageChat(fichier: File) {
  */
 export async function uploaderDocumentChat(fichier: File) {
   const resultat = await appelerApiFichier("/api/uploads/document-chat", fichier);
-  return resultat as { texte: string; tronque: boolean };
+  return resultat as { texte: string; tronque: boolean; url: string | null };
 }
 
 /**
@@ -209,7 +209,7 @@ export async function uploaderDocumentChat(fichier: File) {
  */
 export async function transcrireAudioChat(fichier: File) {
   const resultat = await appelerApiFichier("/api/uploads/audio-chat", fichier);
-  return resultat as { texte: string };
+  return resultat as { texte: string; url: string | null };
 }
 
 /**
@@ -221,13 +221,31 @@ export async function transcrireAudioChat(fichier: File) {
  */
 export async function uploaderVideoChat(fichier: File) {
   const resultat = await appelerApiFichier("/api/uploads/video-chat", fichier);
-  return resultat as { transcript: string; frames_base64: string[] };
+  return resultat as { transcript: string; frames_base64: string[]; url: string | null };
 }
 
 /**
  * Statut de connexion OAuth à un service externe (ex. "github") via le
  * moteur générique -- voir connexions/oauth_generique.py côté backend.
  */
+export async function lireRegistreOutils() {
+  return appelerApi(`/api/registre-outils`);
+}
+
+export async function lireDroitsAgent(agentId: string) {
+  return appelerApi(`/api/agents/${agentId}/droits`);
+}
+
+export async function modifierDroitsAgent(
+  agentId: string,
+  payload: { outils_generation: string[]; serveurs: string[]; informer_utilisateurs: boolean }
+) {
+  return appelerApi(`/api/agents/${agentId}/droits`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function statutConnexion(service: string) {
   const resultat = await appelerApi(`/api/connexions/${service}/statut`);
   return resultat as { connecte: boolean };

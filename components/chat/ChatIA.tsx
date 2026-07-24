@@ -180,19 +180,28 @@ export function ChatIA({
       try {
         if (typeFichier === "image") {
           imageUrl = await uploaderImageChat(fichier);
+          // Le lien réel doit aussi être en TEXTE dans le message, pas
+          // seulement envoyé à part pour l'analyse visuelle (image_url) --
+          // sinon l'IA "voit" l'image via la vision mais n'a jamais son
+          // adresse réelle en mémoire, et invente un lien si on la lui
+          // redemande plus tard (repéré en test réel, 2026-07-23).
+          texteEnrichi = `${texte}\n\n[Image jointe : ${imageUrl}]`;
         } else if (typeFichier === "audio") {
-          const { texte: texteAudio } = await transcrireAudioChat(fichier);
-          texteEnrichi = `${texte}\n\n[Audio joint : ${fichier.name} -- transcription]\n${texteAudio}`;
+          const { texte: texteAudio, url: urlAudio } = await transcrireAudioChat(fichier);
+          const lienAudio = urlAudio ? `\n[Lien réel du fichier : ${urlAudio}]` : "";
+          texteEnrichi = `${texte}\n\n[Audio joint : ${fichier.name} -- transcription]\n${texteAudio}${lienAudio}`;
         } else if (typeFichier === "video") {
-          const { transcript, frames_base64 } = await uploaderVideoChat(fichier);
+          const { transcript, frames_base64, url: urlVideo } = await uploaderVideoChat(fichier);
           imagesBase64 = frames_base64.length ? frames_base64 : null;
+          const lienVideo = urlVideo ? `\n[Lien réel du fichier : ${urlVideo}]` : "";
           texteEnrichi = transcript
-            ? `${texte}\n\n[Vidéo jointe : ${fichier.name} -- transcription audio]\n${transcript}`
-            : `${texte}\n\n[Vidéo jointe : ${fichier.name} -- pas de son exploitable, images seules]`;
+            ? `${texte}\n\n[Vidéo jointe : ${fichier.name} -- transcription audio]\n${transcript}${lienVideo}`
+            : `${texte}\n\n[Vidéo jointe : ${fichier.name} -- pas de son exploitable, images seules]${lienVideo}`;
         } else {
-          const { texte: texteDocument, tronque } = await uploaderDocumentChat(fichier);
+          const { texte: texteDocument, tronque, url: urlDocument } = await uploaderDocumentChat(fichier);
+          const lienDocument = urlDocument ? `\n[Lien réel du fichier : ${urlDocument}]` : "";
           texteEnrichi =
-            `${texte}\n\n[Document joint : ${fichier.name}${tronque ? " (tronqué)" : ""}]\n${texteDocument}`;
+            `${texte}\n\n[Document joint : ${fichier.name}${tronque ? " (tronqué)" : ""}]\n${texteDocument}${lienDocument}`;
         }
       } catch (e) {
         // Même correction que pour la dictée vocale (2026-07-20) : le

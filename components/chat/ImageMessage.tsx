@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, ImageOff, ExternalLink } from "lucide-react";
+import { X, ImageOff, ExternalLink, Download } from "lucide-react";
 
 // Remplace le <img> par défaut de ReactMarkdown (![alt](url) en markdown).
 // Trois problèmes réglés par rapport au <img> nu :
@@ -23,6 +23,25 @@ export function ImageMessage({ src, alt }: { src?: string; alt?: string }) {
   const [ouverte, setOuverte] = useState(false);
 
   if (!src) return null;
+
+  // Téléchargement via fetch+blob plutôt qu'un simple <a download> : pour
+  // une URL cross-origin (Supabase), le navigateur ignore souvent
+  // l'attribut download et ouvre l'image dans un nouvel onglet à la
+  // place -- le blob local, lui, force le vrai téléchargement.
+  async function telecharger() {
+    try {
+      const reponse = await fetch(src!);
+      const blob = await reponse.blob();
+      const url = URL.createObjectURL(blob);
+      const lien = document.createElement("a");
+      lien.href = url;
+      lien.download = alt || "image";
+      lien.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      window.open(src, "_blank");
+    }
+  }
 
   if (enErreur) {
     return (
@@ -61,6 +80,16 @@ export function ImageMessage({ src, alt }: { src?: string; alt?: string }) {
           className="fixed inset-0 z-50 flex animate-dj-fade-in items-center justify-center bg-black/85 p-6"
           onClick={() => setOuverte(false)}
         >
+          <button
+            aria-label="Télécharger"
+            onClick={(e) => {
+              e.stopPropagation();
+              telecharger();
+            }}
+            className="absolute right-16 top-5 text-dj-texte-muet hover:text-dj-texte"
+          >
+            <Download size={22} />
+          </button>
           <button
             aria-label="Fermer"
             className="absolute right-5 top-5 text-dj-texte-muet hover:text-dj-texte"

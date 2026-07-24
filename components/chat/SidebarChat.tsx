@@ -131,10 +131,21 @@ export function SidebarChat({
         {ouverte ? <ChevronsLeft size={16} /> : <ChevronsRight size={16} />}
       </button>
 
-      {ouverte && (
+      {/* CORRIGÉ le 22/07/2026 (Bourama : "sursaute au lieu de glisser") :
+          le panneau était monté/démonté d'un coup ({ouverte && ...}), donc
+          aucune transition possible -- juste apparition/disparition
+          instantanée. Maintenant toujours monté, seule la largeur du
+          conteneur externe est animée (overflow-hidden pour clipper
+          proprement), le contenu interne garde une largeur fixe pour ne
+          jamais se tasser/reflow pendant l'animation. */}
+      <div
+        className={`shrink-0 overflow-hidden transition-[width] duration-300 ease-out ${
+          ouverte ? "w-72" : "w-0"
+        }`}
+      >
         <aside
           ref={asideRef}
-          className="flex w-72 shrink-0 flex-col gap-3 overflow-y-auto border-r border-dj-bordure bg-dj-fond px-3 pb-4 pt-14"
+          className="flex h-full w-72 flex-col gap-3 overflow-y-auto border-r border-dj-bordure bg-dj-fond px-3 pb-4 pt-14"
         >
           <Link
             href={`/agent/${agentId}`}
@@ -247,7 +258,7 @@ export function SidebarChat({
             {copie ? "Copié !" : "Partager"}
           </button>
         </aside>
-      )}
+      </div>
     </>
   );
 }
