@@ -138,6 +138,13 @@ export function SidebarChat({
           conteneur externe est animée (overflow-hidden pour clipper
           proprement), le contenu interne garde une largeur fixe pour ne
           jamais se tasser/reflow pendant l'animation. */}
+      {/* AJUSTÉ le 22/07/2026 (Bourama : "la ligne droite efface au lieu
+          que la barre glisse") : la largeur seule donne l'impression
+          d'un balayage (le contenu reste immobile, juste dévoilé/masqué
+          par le bord droit qui bouge). Le panneau interne se translate
+          maintenant EN PLUS, dans le même sens et la même durée que le
+          rétrécissement de largeur -- effet "tout le bloc part vers la
+          gauche" plutôt qu'un simple dévoilement. */}
       <div
         className={`shrink-0 overflow-hidden transition-[width] duration-300 ease-out ${
           ouverte ? "w-72" : "w-0"
@@ -145,7 +152,9 @@ export function SidebarChat({
       >
         <aside
           ref={asideRef}
-          className="flex h-full w-72 flex-col gap-3 overflow-y-auto border-r border-dj-bordure bg-dj-fond px-3 pb-4 pt-14"
+          className={`flex h-full w-72 flex-col gap-3 overflow-y-auto border-r border-dj-bordure bg-dj-fond px-3 pb-4 pt-14 transition-transform duration-300 ease-out ${
+            ouverte ? "translate-x-0" : "-translate-x-full"
+          }`}
         >
           <Link
             href={`/agent/${agentId}`}
