@@ -43,9 +43,9 @@ export function LecteurMedia({ href, type }: { href: string; type: "audio" | "vi
     <span className="my-2 block animate-dj-fade-in overflow-hidden rounded-xl border border-dj-bordure bg-dj-surface p-2">
       <span className="flex items-center gap-2">
         {type === "audio" ? (
-          <audio controls src={href} className="w-full" />
+          <audio controls src={href} style={{ colorScheme: "dark" }} className="w-full" />
         ) : (
-          <video controls src={href} className="max-h-80 w-full rounded-lg" />
+          <video controls src={href} style={{ colorScheme: "dark" }} className="max-h-80 w-full rounded-lg" />
         )}
         <button
           onClick={telecharger}

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Pin, Mic, Square, AudioLines, ArrowUp, X, MapPin, Github, FileText, Video } from "lucide-react";
+import { Pin, Mic, Square, AudioLines, ArrowUp, X, MapPin, Github, FileText } from "lucide-react";
 import { transcrireAudioChat, statutConnexion, demarrerConnexion, depotsGithub } from "@/lib/api";
+import { LecteurMedia } from "./LecteurMedia";
 
 export type LongueurReponse = "courte" | "moyenne" | "longue";
 export type LocalisationJointe = { latitude: number; longitude: number } | null;
@@ -299,6 +300,25 @@ export function BarreDeSaisie({
                   <X size={12} />
                 </button>
               </div>
+            ) : fichier.type.startsWith("video/") || fichier.type.startsWith("audio/") ? (
+              // Aperçu jouable avant envoi (2026-07-23, demande de Bourama :
+              // avant on ne voyait qu'un nom de fichier cliquable, aucun
+              // moyen d'écouter/regarder avant d'envoyer) -- même lecteur
+              // que celui utilisé pour un lien reçu, sur une URL locale
+              // (blob), pas encore uploadée.
+              <div className="relative w-full max-w-xs">
+                <LecteurMedia
+                  href={URL.createObjectURL(fichier)}
+                  type={fichier.type.startsWith("video/") ? "video" : "audio"}
+                />
+                <button
+                  onClick={() => choisirFichier(null)}
+                  aria-label="Retirer le fichier"
+                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-dj-fond text-dj-texte-muet hover:text-dj-texte"
+                >
+                  <X size={12} />
+                </button>
+              </div>
             ) : (
               <div className="flex w-fit items-center gap-2 rounded-xl border border-dj-bordure bg-dj-surface-haute px-3 py-2 text-xs text-dj-texte-muet">
                 <button
@@ -306,7 +326,7 @@ export function BarreDeSaisie({
                   aria-label="Ouvrir le fichier"
                   className="flex items-center gap-2 hover:text-dj-texte"
                 >
-                  {fichier.type.startsWith("video/") ? <Video size={14} /> : <FileText size={14} />}
+                  <FileText size={14} />
                   <span className="max-w-[180px] truncate">{fichier.name}</span>
                 </button>
                 <button onClick={() => choisirFichier(null)} aria-label="Retirer le fichier" className="hover:text-dj-texte">
