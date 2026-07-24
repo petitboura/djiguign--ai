@@ -4,12 +4,14 @@ import { AlertTriangle, Check, X } from "lucide-react";
 
 export function ConfirmationOutil({
   nomLisible,
+  agentNom,
   arguments: args,
   enAttente,
   onConfirmer,
   onAnnuler,
 }: {
   nomLisible: string;
+  agentNom?: string | null;
   arguments: Record<string, unknown>;
   enAttente: boolean;
   onConfirmer: () => void;
@@ -23,7 +25,12 @@ export function ConfirmationOutil({
         <AlertTriangle size={16} className="mt-0.5 shrink-0 text-dj-accent-1" />
         <div className="min-w-0 flex-1">
           <p className="text-sm text-dj-texte">
-            <span className="font-semibold">{nomLisible}</span> va modifier tes données. Confirmer ?
+            {/* Sujet = l'AGENT, pas l'outil (2026-07-23, demande de
+                Bourama) : "Nucleos veut faire ceci : Modification d'un
+                fichier GitHub", valable pour n'importe quelle action
+                sensible, pas seulement GitHub. */}
+            <span className="font-semibold">{agentNom || "Cet agent"}</span> veut faire ceci :{" "}
+            <span className="font-semibold">{nomLisible}</span>. Confirmer ?
           </p>
           {entrees.length > 0 && (
             <div className="mt-2 space-y-0.5 rounded-lg bg-dj-fond/60 p-2 text-[12px] text-dj-texte-muet">

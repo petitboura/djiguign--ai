@@ -42,6 +42,7 @@ export function ChatIA({
   const [statuts, setStatuts] = useState<{ texte: string; etat: EtatStatut }[]>([]);
   const [confirmation, setConfirmation] = useState<{
     nomLisible: string;
+    agentNom?: string | null;
     arguments: Record<string, unknown>;
     etatReprise: unknown;
   } | null>(null);
@@ -108,6 +109,7 @@ export function ChatIA({
     } else if (evenement.type === "confirmation_requise") {
       setConfirmation({
         nomLisible: evenement.nom_lisible,
+        agentNom: evenement.agent_nom,
         arguments: evenement.arguments || {},
         etatReprise: evenement.etat_reprise,
       });
@@ -347,6 +349,7 @@ export function ChatIA({
         {confirmation && (
           <ConfirmationOutil
             nomLisible={confirmation.nomLisible}
+            agentNom={confirmation.agentNom}
             arguments={confirmation.arguments}
             enAttente={confirmationEnAttente}
             onConfirmer={() => repriseApresConfirmation(true)}
