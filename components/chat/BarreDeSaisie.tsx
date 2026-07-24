@@ -73,6 +73,11 @@ export function BarreDeSaisie({
   const inputFichierRef = useRef<HTMLInputElement>(null);
   const zoneTexteRef = useRef<HTMLTextAreaElement>(null);
   const calqueRef = useRef<HTMLDivElement>(null);
+  // Calque/textarea séparés pour le plein écran -- reste monté en même
+  // temps que le composer compact (juste recouvert par l'overlay), donc
+  // impossible de partager les mêmes refs entre les deux.
+  const zoneTextePleinEcranRef = useRef<HTMLTextAreaElement>(null);
+  const calquePleinEcranRef = useRef<HTMLDivElement>(null);
 
   // Aperçu du fichier joint AVANT envoi (2026-07-20, bug trouvé par
   // Bourama : jusqu'ici juste le nom du fichier en texte, aucune vignette).
@@ -577,9 +582,9 @@ export function BarreDeSaisie({
         // composer normal (pas de duplication de logique), juste une zone
         // d'écriture plus grande + bouton envoyer intégré pour ne pas avoir
         // à fermer le plein écran avant d'envoyer (demande de Bourama,
-        // 2026-07-23). Le calque de coloration des liens n'est PAS repris
-        // ici (simplification volontaire) -- superflu vu la taille de la
-        // zone disponible.
+        // 2026-07-23). Coloration des liens reprise ici aussi (2026-07-23,
+        // suite) via le même calque que le composer compact, juste sur des
+        // refs séparées.
         <div className="fixed inset-0 z-50 flex flex-col animate-dj-fade-in bg-dj-fond p-6">
           <div className="flex items-center justify-between pb-4">
             <span className="text-sm text-dj-texte-muet">Écris ton message</span>
@@ -591,20 +596,48 @@ export function BarreDeSaisie({
               <Minimize2 size={14} /> Rétrécir
             </button>
           </div>
-          <textarea
-            autoFocus
-            value={texte}
-            onChange={(e) => setTexte(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                envoyer();
-                setPleinEcranSaisie(false);
-              }
-            }}
-            placeholder="Pose ta question..."
-            className="min-h-0 flex-1 resize-none bg-transparent text-base leading-relaxed text-dj-texte outline-none placeholder:text-dj-texte-muet"
-          />
+          <div className="relative min-h-0 flex-1 overflow-hidden">
+            {/* Même technique de calque que le composer compact (voir plus
+                haut, segmenterTexteAvecLiens) -- coloration des liens
+                pendant la frappe, demande de Bourama (2026-07-23) : le
+                plein écran ne doit pas perdre cette fonctionnalité. */}
+            <div
+              ref={calquePleinEcranRef}
+              aria-hidden
+              className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words text-base leading-relaxed text-dj-texte"
+            >
+              {texte
+                ? segmenterTexteAvecLiens(texte).map((s, i) =>
+                    s.lien ? (
+                      <span key={i} className="text-dj-accent-1 underline">
+                        {s.texte}
+                      </span>
+                    ) : (
+                      <span key={i}>{s.texte}</span>
+                    )
+                  )
+                : null}
+              {texte.endsWith("\n") && "\u200b"}
+            </div>
+            <textarea
+              ref={zoneTextePleinEcranRef}
+              autoFocus
+              value={texte}
+              onChange={(e) => setTexte(e.target.value)}
+              onScroll={(e) => {
+                if (calquePleinEcranRef.current) calquePleinEcranRef.current.scrollTop = e.currentTarget.scrollTop;
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  envoyer();
+                  setPleinEcranSaisie(false);
+                }
+              }}
+              placeholder="Pose ta question..."
+              className="relative h-full w-full resize-none overflow-y-auto bg-transparent text-base leading-relaxed text-transparent caret-dj-texte outline-none placeholder:text-dj-texte-muet"
+            />
+          </div>
           <div className="flex justify-end pt-4">
             <button
               onClick={() => {
