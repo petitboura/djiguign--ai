@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { appelerApi } from "@/lib/api";
 import { ChatIA } from "./ChatIA";
-import { MessageAffiche } from "./BulleMessage";
+import { MessageAffiche, nettoyerMessageHistorique } from "./BulleMessage";
 import { SidebarChat, FilConversation } from "./SidebarChat";
 
 // Composant client qui porte l'état de "quel fil de conversation est
@@ -50,7 +50,18 @@ export function ChatAgentClient({
       // uuid) -- pas une régression, le même comportement exact que
       // faces/vues/chat.py.
       setCle(fil.conversation_id ?? crypto.randomUUID());
-      setMessagesInitiaux(lignes.map((l) => ({ id: null, role: l.role, content: l.content, created_at: l.created_at })));
+      setMessagesInitiaux(
+        lignes.map((l) => {
+          // Seuls les messages UTILISATEUR sont enrichis côté client avant
+          // envoi (voir ChatIA.tsx) -- une réponse assistant est déjà le
+          // texte final tel quel, rien à nettoyer.
+          if (l.role !== "user") {
+            return { id: null, role: l.role, content: l.content, created_at: l.created_at };
+          }
+          const { texte, pieceJointe } = nettoyerMessageHistorique(l.content);
+          return { id: null, role: l.role, content: texte, created_at: l.created_at, pieceJointe };
+        })
+      );
       setNbMessages(lignes.length);
     } catch {
       // Échec de rechargement : on laisse le fil courant tel quel plutôt

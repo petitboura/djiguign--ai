@@ -72,6 +72,70 @@ export interface MessageAffiche {
   pieceJointe?: { nom: string; type: "image" | "document" | "video" | "audio"; previewUrl?: string } | null;
 }
 
+// Ajouté le 2026-07-23 (bug repéré par Bourama : en rechargeant un fil de
+// conversation depuis l'historique, la bulle utilisateur affichait le
+// texte "enrichi" tel quel -- transcription audio/vidéo complète, texte
+// extrait d'un document, bloc [Lien réel du fichier : ...] -- au lieu du
+// message réellement tapé. Cause : ChatIA.tsx construit ce texte enrichi
+// côté client puis l'envoie à /api/chat comme SEUL "message" ; le backend
+// le sauvegarde tel quel (pas de champ séparé pour le texte "propre" vs
+// le contexte destiné au modèle). Pendant la session en cours, la bulle
+// affichée utilise encore `texte` (la variable propre, jamais écrasée) --
+// le problème n'apparaît qu'au rechargement, une fois qu'il ne reste plus
+// que le contenu persisté en base à afficher.
+//
+// Corrige l'AFFICHAGE seul (aucun changement backend) : détecte les 4
+// marqueurs injectés par ChatIA.tsx et reconstruit un texte propre + un
+// pieceJointe (avec l'URL réelle du fichier, toujours valable après
+// rechargement contrairement à previewUrl qui était une URL locale
+// éphémère).
+const MARQUEURS_PIECE_JOINTE: { motif: RegExp; type: "image" | "document" | "video" | "audio" }[] = [
+  { motif: /\n\n\[Image jointe : /, type: "image" },
+  { motif: /\n\n\[Audio joint : /, type: "audio" },
+  { motif: /\n\n\[Vidéo jointe : /, type: "video" },
+  { motif: /\n\n\[Document joint : /, type: "document" },
+];
+
+export function nettoyerMessageHistorique(content: string): {
+  texte: string;
+  pieceJointe: MessageAffiche["pieceJointe"];
+} {
+  for (const { motif, type } of MARQUEURS_PIECE_JOINTE) {
+    const correspondance = motif.exec(content);
+    if (!correspondance) continue;
+
+    const texte = content.slice(0, correspondance.index);
+    const bloc = content.slice(correspondance.index);
+
+    // Nom du fichier : entre "jointe/joint : " et le premier "]" ou " -- ".
+    // Cas particulier image : le marqueur ne contient que l'URL, pas de nom
+    // -- on prend le dernier segment du chemin en repli.
+    const nomMatch = /(?:Audio joint|Vidéo jointe|Document joint) : ([^\]\n]+?)(?:\]| -- )/.exec(bloc);
+    let nom = nomMatch ? nomMatch[1].trim() : "fichier";
+    if (type === "image") {
+      const urlImage = /\[Image jointe : (.+?)\]/.exec(bloc)?.[1] ?? "";
+      nom = urlImage.split("/").pop()?.split("?")[0] || "image";
+    }
+    // Retire un éventuel " (tronqué)" laissé par le marqueur document.
+    nom = nom.replace(/\s*\(tronqué\)$/, "");
+
+    // URL réelle du fichier : toujours en toute fin de bloc si présente
+    // (image : c'est directement le contenu entre crochets ; les 3
+    // autres : "[Lien réel du fichier : URL]" en dernière ligne).
+    const urlMatch =
+      type === "image"
+        ? /\[Image jointe : (.+?)\]/.exec(bloc)
+        : /\[Lien réel du fichier : (.+?)\]/.exec(bloc);
+    const url = urlMatch ? urlMatch[1].trim() : undefined;
+
+    return {
+      texte,
+      pieceJointe: { nom, type, previewUrl: url },
+    };
+  }
+  return { texte: content, pieceJointe: null };
+}
+
 // Voir MIGRATION_CHAT_VERS_NEXTJS.md, section 3.1 :
 // - heure affichée sous le message UTILISATEUR uniquement
 // - boutons différents selon le rôle
