@@ -178,6 +178,12 @@ export function ChatIA({
       try {
         if (typeFichier === "image") {
           imageUrl = await uploaderImageChat(fichier);
+          // Le lien réel doit aussi être en TEXTE dans le message, pas
+          // seulement envoyé à part pour l'analyse visuelle (image_url) --
+          // sinon l'IA "voit" l'image via la vision mais n'a jamais son
+          // adresse réelle en mémoire, et invente un lien si on la lui
+          // redemande plus tard (repéré en test réel, 2026-07-23).
+          texteEnrichi = `${texte}\n\n[Image jointe : ${imageUrl}]`;
         } else if (typeFichier === "audio") {
           const { texte: texteAudio } = await transcrireAudioChat(fichier);
           texteEnrichi = `${texte}\n\n[Audio joint : ${fichier.name} -- transcription]\n${texteAudio}`;
