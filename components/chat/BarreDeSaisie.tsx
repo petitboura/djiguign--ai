@@ -74,6 +74,11 @@ export function BarreDeSaisie({
     el.style.height = `${el.scrollHeight}px`;
   }
 
+  useEffect(() => {
+    ajusterHauteurTexte();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Dictée vocale (2026-07-20) : enregistrement micro réel via
   // MediaRecorder, transcrit par Whisper/Groq (api/uploads.py:
   // uploader_audio_chat) puis ajouté au texte -- pas d'envoi automatique,
@@ -164,6 +169,7 @@ export function BarreDeSaisie({
   function choisirDepot(nomComplet: string) {
     setTexte((prec) => (prec.trim() ? `${prec} https://github.com/${nomComplet}` : `https://github.com/${nomComplet}`));
     setSelecteurOuvert(false);
+    requestAnimationFrame(ajusterHauteurTexte);
   }
 
   function pasDisponible() {
