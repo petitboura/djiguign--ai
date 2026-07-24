@@ -34,7 +34,7 @@ function idYoutube(href: string): string | null {
 
 type Apercu = { titre: string | null; image: string | null; description: string | null; siteName: string };
 
-export function LinkPreview({ href, texteLien }: { href: string; texteLien: string }) {
+export function LinkPreview({ href, texteLien, compact }: { href: string; texteLien: string; compact?: boolean }) {
   const [apercu, setApercu] = useState<Apercu | null>(null);
   const [echec, setEchec] = useState(false);
   const [charge, setCharge] = useState(false);
@@ -84,6 +84,17 @@ export function LinkPreview({ href, texteLien }: { href: string; texteLien: stri
   }
 
   if (!charge) {
+    if (compact) {
+      return (
+        <span className="my-2 flex h-20 w-full max-w-sm animate-pulse items-center gap-3 rounded-xl border border-dj-bordure bg-dj-surface px-3">
+          <span className="h-14 w-14 shrink-0 rounded-lg bg-dj-surface-haute" />
+          <span className="flex-1 space-y-2">
+            <span className="block h-3 w-3/4 rounded bg-dj-surface-haute" />
+            <span className="block h-3 w-1/2 rounded bg-dj-surface-haute" />
+          </span>
+        </span>
+      );
+    }
     return idVideo ? (
       <span className="my-2 block w-full max-w-md animate-pulse overflow-hidden rounded-xl border border-dj-bordure bg-dj-surface">
         <span className="block aspect-video w-full bg-dj-surface-haute" />
@@ -103,10 +114,40 @@ export function LinkPreview({ href, texteLien }: { href: string; texteLien: stri
     );
   }
 
+  if (compact) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="my-2 flex w-full max-w-sm animate-dj-fade-in items-center gap-3 rounded-xl border border-dj-bordure bg-dj-surface p-2 no-underline transition-colors hover:border-dj-bordure-forte"
+      >
+        {apercu!.image && (
+          <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-dj-surface-haute">
+            {/* eslint-disable-next-line @next/next/no-img-element -- aperçu externe (og:image / miniature YouTube), pas un asset local */}
+            <img src={apercu!.image} alt="" className="h-full w-full object-cover" />
+            {idVideo && (
+              <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+                <Play size={16} className="fill-white text-white" />
+              </span>
+            )}
+          </span>
+        )}
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm text-dj-texte">{apercu!.titre || texteLien}</span>
+          <span className="block truncate text-[11px] text-dj-texte-muet">{apercu!.siteName}</span>
+        </span>
+        <ExternalLink size={13} className="shrink-0 text-dj-texte-muet" />
+      </a>
+    );
+  }
+
   // Format vidéo pour YouTube (miniature 16:9 pleine largeur, comme sur
   // les autres plateformes) -- la carte compacte 56x56px d'avant "faisait
   // petit" pour une vignette vidéo (retour de Bourama en test réel).
   // Les liens génériques restent en carte horizontale, juste agrandie.
+  // Réservé aux messages assistant (compact absent/false) -- Bourama veut
+  // garder l'ancien format côté utilisateur.
   if (idVideo) {
     return (
       <a
