@@ -199,7 +199,7 @@ export async function uploaderImageChat(fichier: File) {
  */
 export async function uploaderDocumentChat(fichier: File) {
   const resultat = await appelerApiFichier("/api/uploads/document-chat", fichier);
-  return resultat as { texte: string; tronque: boolean };
+  return resultat as { texte: string; tronque: boolean; url: string | null };
 }
 
 /**
@@ -209,7 +209,7 @@ export async function uploaderDocumentChat(fichier: File) {
  */
 export async function transcrireAudioChat(fichier: File) {
   const resultat = await appelerApiFichier("/api/uploads/audio-chat", fichier);
-  return resultat as { texte: string };
+  return resultat as { texte: string; url: string | null };
 }
 
 /**
@@ -221,7 +221,7 @@ export async function transcrireAudioChat(fichier: File) {
  */
 export async function uploaderVideoChat(fichier: File) {
   const resultat = await appelerApiFichier("/api/uploads/video-chat", fichier);
-  return resultat as { transcript: string; frames_base64: string[] };
+  return resultat as { transcript: string; frames_base64: string[]; url: string | null };
 }
 
 /**
