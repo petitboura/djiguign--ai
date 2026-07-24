@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Pin, Mic, Square, AudioLines, ArrowUp, X, MapPin, Github, FileText } from "lucide-react";
+import { Pin, Mic, Square, AudioLines, ArrowUp, X, MapPin, Github, FileText, Maximize2, Minimize2 } from "lucide-react";
 import { transcrireAudioChat, statutConnexion, demarrerConnexion, depotsGithub } from "@/lib/api";
 import { LecteurMedia } from "./LecteurMedia";
 
@@ -67,6 +67,9 @@ export function BarreDeSaisie({
   const [fichier, setFichier] = useState<File | null>(null);
   const [apercuFichier, setApercuFichier] = useState<string | null>(null);
   const [imageOuverte, setImageOuverte] = useState(false);
+  // Plein écran de la saisie (2026-07-23, demande de Bourama : l'agrandissement
+  // auto restait trop limité pour écrire un long message confortablement).
+  const [pleinEcranSaisie, setPleinEcranSaisie] = useState(false);
   const inputFichierRef = useRef<HTMLInputElement>(null);
   const zoneTexteRef = useRef<HTMLTextAreaElement>(null);
   const calqueRef = useRef<HTMLDivElement>(null);
@@ -361,7 +364,7 @@ export function BarreDeSaisie({
           <div
             ref={calqueRef}
             aria-hidden
-            className="pointer-events-none absolute inset-0 max-h-40 overflow-hidden whitespace-pre-wrap break-words text-[15px] leading-normal text-dj-texte"
+            className="pointer-events-none absolute inset-0 max-h-64 overflow-hidden whitespace-pre-wrap break-words text-[15px] leading-normal text-dj-texte"
           >
             {texte
               ? segmenterTexteAvecLiens(texte).map((s, i) =>
@@ -397,7 +400,7 @@ export function BarreDeSaisie({
             }}
             placeholder={transcriptionEnCours ? "Transcription en cours..." : "Pose ta question..."}
             rows={1}
-            className="relative max-h-40 w-full resize-none overflow-y-auto bg-transparent text-[15px] leading-normal text-transparent caret-dj-texte outline-none placeholder:text-dj-texte-muet"
+            className="relative max-h-64 w-full resize-none overflow-y-auto bg-transparent text-[15px] leading-normal text-transparent caret-dj-texte outline-none placeholder:text-dj-texte-muet"
           />
         </div>
 
@@ -503,6 +506,15 @@ export function BarreDeSaisie({
               <option value="moyenne">Moyenne</option>
               <option value="longue">Longue</option>
             </select>
+
+            <button
+              type="button"
+              onClick={() => setPleinEcranSaisie(true)}
+              aria-label="Agrandir en plein écran"
+              className="text-dj-texte-muet transition-colors hover:text-dj-texte"
+            >
+              <Maximize2 size={16} />
+            </button>
           </div>
 
           <div className="flex items-center gap-3">
@@ -557,6 +569,55 @@ export function BarreDeSaisie({
           </button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={apercuFichier} alt="" className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain" />
+        </div>
+      )}
+
+      {pleinEcranSaisie && (
+        // Plein écran de la saisie : même état `texte`/`onEnvoyer` que le
+        // composer normal (pas de duplication de logique), juste une zone
+        // d'écriture plus grande + bouton envoyer intégré pour ne pas avoir
+        // à fermer le plein écran avant d'envoyer (demande de Bourama,
+        // 2026-07-23). Le calque de coloration des liens n'est PAS repris
+        // ici (simplification volontaire) -- superflu vu la taille de la
+        // zone disponible.
+        <div className="fixed inset-0 z-50 flex flex-col animate-dj-fade-in bg-dj-fond p-6">
+          <div className="flex items-center justify-between pb-4">
+            <span className="text-sm text-dj-texte-muet">Écris ton message</span>
+            <button
+              onClick={() => setPleinEcranSaisie(false)}
+              aria-label="Rétrécir"
+              className="flex items-center gap-1.5 rounded-lg border border-dj-bordure px-2.5 py-1.5 text-xs text-dj-texte-muet hover:text-dj-texte"
+            >
+              <Minimize2 size={14} /> Rétrécir
+            </button>
+          </div>
+          <textarea
+            autoFocus
+            value={texte}
+            onChange={(e) => setTexte(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                envoyer();
+                setPleinEcranSaisie(false);
+              }
+            }}
+            placeholder="Pose ta question..."
+            className="min-h-0 flex-1 resize-none bg-transparent text-base leading-relaxed text-dj-texte outline-none placeholder:text-dj-texte-muet"
+          />
+          <div className="flex justify-end pt-4">
+            <button
+              onClick={() => {
+                envoyer();
+                setPleinEcranSaisie(false);
+              }}
+              disabled={!texte.trim() || desactive}
+              aria-label="Envoyer"
+              className="flex items-center gap-2 rounded-full bg-dj-gradient px-5 py-2.5 text-sm font-medium text-[#1A0D02] disabled:opacity-60"
+            >
+              Envoyer <ArrowUp size={16} />
+            </button>
+          </div>
         </div>
       )}
     </div>
